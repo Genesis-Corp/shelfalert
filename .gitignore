@@ -1,0 +1,10 @@
+.vercel
+.env*.local
+.env
+
+# Claude local settings
+.claude/
+
+# Supabase temp files
+supabase/.temp/
+supabase/.branches/
