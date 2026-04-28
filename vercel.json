@@ -1,0 +1,6 @@
+{
+  "installCommand": "cd shelfalert && npm install",
+  "buildCommand": "cd shelfalert && npm run build",
+  "outputDirectory": "shelfalert/build",
+  "framework": "create-react-app"
+}
