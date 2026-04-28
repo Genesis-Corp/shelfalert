@@ -1,6 +1,15 @@
-.vercel
-.env*.local
+# dependencies
+/node_modules
+
+# production
+/build
+
+# environment
 .env
+.env*.local
+
+# Vercel
+.vercel
 
 # Claude local settings
 .claude/
@@ -8,3 +17,9 @@
 # Supabase temp files
 supabase/.temp/
 supabase/.branches/
+
+# misc
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
