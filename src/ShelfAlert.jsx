@@ -908,10 +908,29 @@ function CreditForm({ type, onSave, onClose }) {
 
 function SupplierForm({ supplier, onSave, onClose }) {
   const [f, setF] = useState(supplier || { name: "", contact: "", phone: "", visitDay: "Monday", frequency: "weekly" });
-  const [saving, setSaving] = useState(false); const s = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const [saving, setSaving] = useState(false);
+  const s = (k, v) => setF(p => ({ ...p, [k]: v }));
   const canSave = f.name.trim().length > 0;
+  const hasContacts = "contacts" in navigator && "ContactsManager" in window;
+
+  const importContact = async () => {
+    try {
+      const results = await navigator.contacts.select(["name", "tel"], { multiple: false });
+      if (!results.length) return;
+      const c = results[0];
+      if (c.name?.[0])  s("contact", c.name[0]);
+      if (c.tel?.[0])   s("phone",   c.tel[0].replace(/\s+/g, " ").trim());
+    } catch {}
+  };
+
   return (
     <Modal title={supplier ? "Edit Supplier" : "Add Supplier"} onClose={onClose}>
+      {hasContacts && !supplier && (
+        <button onClick={importContact} style={{ ...BS, width: "100%", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 11l-4-4m0 4 4-4" size={15} />
+          Import from Contacts
+        </button>
+      )}
       <Field label="Company / Supplier Name"><input style={IS} placeholder="e.g. Patties Foods" value={f.name} onChange={e => s("name", e.target.value)} /></Field>
       <Field label="Rep Name (optional)"><input style={IS} placeholder="e.g. Mark Reynolds" value={f.contact} onChange={e => s("contact", e.target.value)} /></Field>
       <Field label="Phone (optional)"><input style={IS} placeholder="e.g. 0412 000 111" value={f.phone} onChange={e => s("phone", e.target.value)} /></Field>

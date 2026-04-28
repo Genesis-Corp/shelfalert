@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#0f172a"/>
+  <!-- shelf uprights -->
+  <rect x="60" y="80" width="24" height="360" rx="6" fill="#334155"/>
+  <rect x="428" y="80" width="24" height="360" rx="6" fill="#334155"/>
+  <!-- top shelf -->
+  <rect x="52" y="130" width="408" height="18" rx="6" fill="#0ea5e9"/>
+  <!-- middle shelf -->
+  <rect x="52" y="260" width="408" height="18" rx="6" fill="#0ea5e9"/>
+  <!-- bottom shelf -->
+  <rect x="52" y="390" width="408" height="18" rx="6" fill="#0ea5e9"/>
+  <!-- products top shelf -->
+  <rect x="90"  y="95"  width="38" height="36" rx="4" fill="#38bdf8"/>
+  <rect x="138" y="100" width="32" height="31" rx="4" fill="#7dd3fc"/>
+  <rect x="180" y="92"  width="42" height="39" rx="4" fill="#0ea5e9"/>
+  <rect x="232" y="98"  width="36" height="33" rx="4" fill="#38bdf8"/>
+  <rect x="278" y="94"  width="40" height="37" rx="4" fill="#7dd3fc"/>
+  <rect x="328" y="99"  width="34" height="32" rx="4" fill="#0ea5e9"/>
+  <rect x="372" y="96"  width="44" height="35" rx="4" fill="#38bdf8"/>
+  <!-- products middle shelf -->
+  <rect x="90"  y="225" width="36" height="36" rx="4" fill="#34d399"/>
+  <rect x="136" y="230" width="40" height="31" rx="4" fill="#6ee7b7"/>
+  <rect x="186" y="222" width="34" height="39" rx="4" fill="#10b981"/>
+  <rect x="230" y="228" width="38" height="33" rx="4" fill="#34d399"/>
+  <!-- gap indicator (missing product) -->
+  <rect x="278" y="222" width="40" height="39" rx="4" fill="#1e293b" stroke="#ef4444" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="298" y="247" text-anchor="middle" font-size="22" fill="#ef4444">!</text>
+  <rect x="328" y="226" width="36" height="35" rx="4" fill="#34d399"/>
+  <rect x="374" y="224" width="42" height="37" rx="4" fill="#6ee7b7"/>
+  <!-- products bottom shelf -->
+  <rect x="90"  y="355" width="44" height="36" rx="4" fill="#fb923c"/>
+  <rect x="144" y="360" width="36" height="31" rx="4" fill="#fdba74"/>
+  <rect x="190" y="352" width="40" height="39" rx="4" fill="#f97316"/>
+  <rect x="240" y="357" width="38" height="34" rx="4" fill="#fb923c"/>
+  <rect x="288" y="354" width="42" height="37" rx="4" fill="#fdba74"/>
+  <rect x="340" y="358" width="36" height="33" rx="4" fill="#f97316"/>
+  <rect x="386" y="355" width="38" height="36" rx="4" fill="#fb923c"/>
+</svg>
