@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { getWeeklyData, getMonthlyWeeklyTotals, getMonthlyDayBreakdown, generateTheftCSV } from "./theftUtils";
 
 // ─── SUPABASE CLIENT (official library — handles auth/refresh automatically) ──
 const supabase = createClient(
@@ -184,6 +185,13 @@ const mapDept = (d) => ({ id: d.id, code: d.code, label: d.label });
 const mapTheftItem = (t) => ({ id: t.id, name: t.name, resolved: t.resolved, resolvedAt: t.resolved_at, createdAt: t.created_at });
 const mapTheftIncident = (i) => ({ id: i.id, itemId: i.item_id, quantity: i.quantity, shelfAisle: i.shelf_aisle, shelfBay: i.shelf_bay, foundAtId: i.found_at_id, incidentDate: i.incident_date, notes: i.notes, loggedBy: i.logged_by, loggedAt: i.logged_at });
 const mapTheftLocation = (l) => ({ id: l.id, name: l.name });
+const downloadTheftCSV = (content, filename) => {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+};
 
 // ─── AI DESCRIPTION ───────────────────────────────────────────────────────────
 async function aiDescribe(base64) {
@@ -962,6 +970,575 @@ function ResolveModal({ gapId, status, onConfirm, onClose }) {
   );
 }
 
+// ─── THEFT CHARTS ─────────────────────────────────────────────────────────────
+function WeeklyBarChart({ data }) {
+  const DAY_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const maxVal = Math.max(...data, 1);
+  const maxIdx = data.indexOf(Math.max(...data));
+  const todayDow = new Date().getDay();
+  const W = 420, H = 110, padL = 26, padB = 20, padT = 10;
+  const chartH = H - padB - padT;
+  const slotW = (W - padL - 8) / 7;
+  const bw = slotW * 0.65;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", display: "block" }}>
+      {[0.5, 1].map((f, i) => (
+        <line key={i} x1={padL} y1={padT + chartH * (1 - f)} x2={W - 4} y2={padT + chartH * (1 - f)} stroke="var(--b)" strokeWidth="0.5" />
+      ))}
+      {data.map((v, i) => {
+        const cx = padL + i * slotW + slotW / 2;
+        const bh = v === 0 ? 0 : Math.max(3, (v / maxVal) * chartH);
+        const y = padT + chartH - bh;
+        const isMax = i === maxIdx && v > 0;
+        const isToday = i === todayDow;
+        return (
+          <g key={i}>
+            <rect x={cx - bw / 2} y={y} width={bw} height={bh} rx="3" fill={isMax ? "#f97316" : "var(--a)"} opacity={isToday ? 1 : 0.7} />
+            {v > 0 && <text x={cx} y={y - 3} fill={isMax ? "#f97316" : "var(--tm)"} fontSize="7" textAnchor="middle">{v}</text>}
+            <text x={cx} y={H - 3} fill={isToday ? "var(--t2)" : "var(--tm)"} fontSize="8" textAnchor="middle" fontWeight={isToday ? "700" : "400"}>{DAY_LABELS[i]}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function MonthlyTotalsChart({ weeks }) {
+  const maxVal = Math.max(...weeks.map(w => w.total), 1);
+  const W = 400, H = 110, padL = 26, padB = 20, padT = 10;
+  const chartH = H - padB - padT;
+  const slotW = (W - padL - 8) / Math.max(weeks.length, 1);
+  const bw = slotW * 0.55;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", display: "block" }}>
+      {[0.5, 1].map((f, i) => (
+        <line key={i} x1={padL} y1={padT + chartH * (1 - f)} x2={W - 4} y2={padT + chartH * (1 - f)} stroke="var(--b)" strokeWidth="0.5" />
+      ))}
+      {weeks.map(({ total, isPartial }, i) => {
+        const cx = padL + i * slotW + slotW / 2;
+        const bh = total === 0 ? 0 : Math.max(3, (total / maxVal) * chartH);
+        const y = padT + chartH - bh;
+        return (
+          <g key={i}>
+            <rect x={cx - bw / 2} y={y} width={bw} height={bh} rx="4" fill="var(--a)" opacity={isPartial ? 0.4 : 0.75} />
+            {total > 0 && <text x={cx} y={y - 3} fill="var(--tm)" fontSize="7" textAnchor="middle">{total}</text>}
+            <text x={cx} y={H - 3} fill="var(--tm)" fontSize="8" textAnchor="middle">Wk {i + 1}{isPartial ? " ▸" : ""}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function MonthlyBreakdownChart({ data }) {
+  const DAY_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const OPACITIES = [0.4, 0.55, 0.7, 0.85, 1.0];
+  const activeWeeks = data.filter(wk => wk.some(v => v > 0)).length;
+  const maxVal = Math.max(...data.flat(), 1);
+  const W = 420, H = 110, padL = 26, padB = 20, padT = 10;
+  const chartH = H - padB - padT;
+  const daySlotW = (W - padL - 8) / 7;
+  const barW = Math.max(4, (daySlotW * 0.75) / Math.max(activeWeeks, 1));
+  const barGap = 1.5;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", display: "block" }}>
+      {[0.5, 1].map((f, i) => (
+        <line key={i} x1={padL} y1={padT + chartH * (1 - f)} x2={W - 4} y2={padT + chartH * (1 - f)} stroke="var(--b)" strokeWidth="0.5" />
+      ))}
+      {DAY_LABELS.map((day, dow) => {
+        const dayStart = padL + dow * daySlotW + daySlotW * 0.1;
+        return (
+          <g key={dow}>
+            {data.map((wkData, wkIdx) => {
+              const v = wkData[dow];
+              if (v === 0) return null;
+              const bh = Math.max(3, (v / maxVal) * chartH);
+              const y = padT + chartH - bh;
+              const x = dayStart + wkIdx * (barW + barGap);
+              return <rect key={wkIdx} x={x} y={y} width={barW} height={bh} rx="2" fill="var(--a)" opacity={OPACITIES[wkIdx] ?? 1} />;
+            })}
+            <text x={padL + dow * daySlotW + daySlotW / 2} y={H - 3} fill="var(--tm)" fontSize="8" textAnchor="middle">{day}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function TheftPrintReport({ incidents, items, locations }) {
+  const itemMap = Object.fromEntries(items.map(i => [i.id, i.name]));
+  const locMap  = Object.fromEntries(locations.map(l => [l.id, l.name]));
+  const totalQty = incidents.reduce((s, i) => s + (i.quantity || 0), 0);
+  const itemCounts = {};
+  incidents.forEach(inc => { itemCounts[inc.itemId] = (itemCounts[inc.itemId] || 0) + 1; });
+  const topItemId  = Object.entries(itemCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const locCounts  = {};
+  incidents.forEach(inc => { if (inc.foundAtId) locCounts[inc.foundAtId] = (locCounts[inc.foundAtId] || 0) + 1; });
+  const topLocId   = Object.entries(locCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  const itemStats = items.map(item => {
+    const incs = incidents.filter(i => i.itemId === item.id);
+    return { ...item, count: incs.length, lastDate: incs[0]?.incidentDate };
+  }).filter(i => i.count > 0).sort((a, b) => b.count - a.count);
+
+  return (
+    <div id="theft-print-report" style={{ display: "none", padding: 20, color: "#000", fontFamily: "sans-serif" }}>
+      <h1 style={{ fontSize: 18, marginBottom: 4 }}>ShelfAlert — Theft Report</h1>
+      <div style={{ fontSize: 12, color: "#555", marginBottom: 16 }}>Generated {new Date().toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}</div>
+
+      <div style={{ marginBottom: 20 }}>
+        <span className="print-stat"><strong>{incidents.length}</strong><br /><small>Total Incidents</small></span>
+        <span className="print-stat"><strong>{totalQty}</strong><br /><small>Total Quantity</small></span>
+        {topItemId && <span className="print-stat"><strong>{itemMap[topItemId]}</strong><br /><small>Top Item ({itemCounts[topItemId]} incidents)</small></span>}
+        {topLocId  && <span className="print-stat"><strong>{locMap[topLocId]}</strong><br /><small>Top Location ({locCounts[topLocId]} reports)</small></span>}
+      </div>
+
+      {itemStats.length > 0 && (
+        <>
+          <h2 style={{ fontSize: 14, marginBottom: 8, borderBottom: "1px solid #ccc", paddingBottom: 4 }}>Items Summary</h2>
+          <table style={{ marginBottom: 20 }}>
+            <thead><tr><th>Item</th><th>Incidents</th><th>Last Seen</th><th>Status</th></tr></thead>
+            <tbody>
+              {itemStats.map(i => (
+                <tr key={i.id}><td>{i.name}</td><td>{i.count}</td><td>{i.lastDate ? fmtDate(i.lastDate) : "—"}</td><td>{i.resolved ? "Resolved" : "Active"}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {incidents.length > 0 && (
+        <>
+          <h2 style={{ fontSize: 14, marginBottom: 8, borderBottom: "1px solid #ccc", paddingBottom: 4 }}>Incident Log</h2>
+          <table>
+            <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Shelf</th><th>Found At</th><th>Notes</th><th>Logged By</th></tr></thead>
+            <tbody>
+              {incidents.map(inc => (
+                <tr key={inc.id}>
+                  <td>{inc.incidentDate}</td>
+                  <td>{itemMap[inc.itemId] ?? ""}</td>
+                  <td>{inc.quantity}</td>
+                  <td>{inc.shelfAisle ? (inc.shelfBay ? `${inc.shelfAisle}·${inc.shelfBay}` : inc.shelfAisle) : ""}</td>
+                  <td>{inc.foundAtId ? (locMap[inc.foundAtId] ?? "") : ""}</td>
+                  <td>{inc.notes ?? ""}</td>
+                  <td>{inc.loggedBy}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </div>
+  );
+}
+
+function TheftItemsTab({ itemStats, locations, locReportCounts, onToggleResolved, onAddItem, onAddLocation, onDeleteLocation }) {
+  const [newItemName, setNewItemName] = useState("");
+  const [addingItem, setAddingItem]   = useState(false);
+  const [newLocName, setNewLocName]   = useState("");
+  const [addingLoc, setAddingLoc]     = useState(false);
+
+  const handleAddItem = async () => {
+    if (!newItemName.trim()) return;
+    await onAddItem(newItemName.trim());
+    setNewItemName(""); setAddingItem(false);
+  };
+
+  const handleAddLoc = async () => {
+    if (!newLocName.trim()) return;
+    await onAddLocation(newLocName.trim());
+    setNewLocName(""); setAddingLoc(false);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2 }}>Tracked Items</h3>
+        <button onClick={() => setAddingItem(true)} style={{ ...BP, padding: "5px 12px", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}><Icon d={IC.plus} size={13} /> Add Item</button>
+      </div>
+
+      {addingItem && (
+        <div style={{ background: "var(--ib)", border: "1px solid var(--a)", borderRadius: 10, padding: "12px 14px", marginBottom: 10, display: "flex", gap: 8 }}>
+          <input style={{ ...IS, flex: 1 }} placeholder="Item name e.g. Gillette Fusion Blades" autoFocus value={newItemName} onChange={e => setNewItemName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddItem()} />
+          <button onClick={handleAddItem} disabled={!newItemName.trim()} style={{ ...BP, padding: "5px 14px", fontSize: 12 }}>Add</button>
+          <button onClick={() => { setAddingItem(false); setNewItemName(""); }} style={{ ...BS, padding: "5px 10px", fontSize: 12 }}>✕</button>
+        </div>
+      )}
+
+      {itemStats.length === 0 && !addingItem && (
+        <div style={{ color: "var(--tm)", fontSize: 13, padding: "16px 0" }}>No items tracked yet — add your first one above.</div>
+      )}
+
+      {itemStats.map(item => (
+        <div key={item.id} style={{ background: "var(--c)", border: `1px solid ${item.resolved ? "#1a5c30" : "var(--b)"}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, opacity: item.resolved ? 0.8 : 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, color: item.resolved ? "#4ade80" : "var(--t1)", marginBottom: 2 }}>{item.name}{item.resolved ? " ✓" : ""}</div>
+            <div style={{ fontSize: 11, color: "var(--tm)" }}>
+              {item.count} incident{item.count !== 1 ? "s" : ""} total
+              {item.lastDate && ` · Last: ${fmtDate(item.lastDate)}`}
+              {item.topAisle && ` · Aisle ${item.topAisle}`}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            <span style={{ background: item.resolved ? "#0f2e1a" : "#0f1e35", color: item.resolved ? "#4ade80" : "#60a5fa", border: `1px solid ${item.resolved ? "#1a5c30" : "#1a3a6a"}`, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: "uppercase", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>
+              {item.resolved ? "Resolved" : "Active"}
+            </span>
+            <button onClick={() => onToggleResolved(item.id, !item.resolved)} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}>
+              {item.resolved ? "Reopen" : "Mark Resolved"}
+            </button>
+          </div>
+        </div>
+      ))}
+
+      <div style={{ borderTop: "1px solid var(--b)", margin: "24px 0 18px" }} />
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2 }}>Found At Locations</h3>
+        <button onClick={() => setAddingLoc(true)} style={{ ...BP, padding: "5px 12px", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}><Icon d={IC.plus} size={13} /> Add Location</button>
+      </div>
+
+      {addingLoc && (
+        <div style={{ background: "var(--ib)", border: "1px solid var(--a)", borderRadius: 10, padding: "12px 14px", marginBottom: 12, display: "flex", gap: 8 }}>
+          <input style={{ ...IS, flex: 1 }} placeholder="Location name e.g. Near Register" autoFocus value={newLocName} onChange={e => setNewLocName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddLoc()} />
+          <button onClick={handleAddLoc} disabled={!newLocName.trim()} style={{ ...BP, padding: "5px 14px", fontSize: 12 }}>Add</button>
+          <button onClick={() => { setAddingLoc(false); setNewLocName(""); }} style={{ ...BS, padding: "5px 10px", fontSize: 12 }}>✕</button>
+        </div>
+      )}
+
+      {locations.length === 0 && !addingLoc && (
+        <div style={{ color: "var(--tm)", fontSize: 13, padding: "8px 0" }}>No locations yet — add your first one above.</div>
+      )}
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {locations.map(loc => (
+          <div key={loc.id} style={{ background: "var(--c)", border: "1px solid var(--b)", borderRadius: 8, padding: "6px 12px", display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--t2)" }}>
+            {loc.name}
+            <span style={{ fontSize: 10, color: "var(--tm)" }}>{locReportCounts[loc.id] || 0} reports</span>
+            <button onClick={() => {
+              if (locReportCounts[loc.id]) { alert(`Cannot delete "${loc.name}" — it has ${locReportCounts[loc.id]} report(s) linked to it.`); return; }
+              onDeleteLocation(loc.id);
+            }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tm)", padding: "0 2px", fontSize: 14, lineHeight: 1 }}>✕</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TheftChartsTab({ incidents, metric, setMetric, monthTab, setMonthTab }) {
+  const weeklyData    = getWeeklyData(incidents, metric);
+  const monthlyTotals = getMonthlyWeeklyTotals(incidents, metric);
+  const monthlyBreakdown = getMonthlyDayBreakdown(incidents, metric);
+
+  const now = new Date();
+  const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const weekStart = (() => { const d = new Date(now); d.setHours(0,0,0,0); d.setDate(d.getDate()-d.getDay()); return d; })();
+  const weekEnd   = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
+  const fmtShort  = d => d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+
+  const todayTotal = weeklyData[now.getDay()];
+  const maxDay     = weeklyData.indexOf(Math.max(...weeklyData));
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 16, gap: 8 }}>
+        <span style={{ fontSize: 11, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1 }}>Show:</span>
+        <div style={{ display: "flex", border: "1px solid var(--b)", borderRadius: 7, overflow: "hidden", fontSize: 12, fontWeight: 700 }}>
+          {[["incidents","Incidents"],["quantity","Quantity"]].map(([val, label]) => (
+            <button key={val} onClick={() => setMetric(val)} style={{ padding: "5px 14px", background: metric === val ? "var(--a)" : "transparent", color: metric === val ? "#000" : "var(--tm)", border: "none", cursor: "pointer", fontFamily: "var(--fb)", fontWeight: 700, fontSize: 12, transition: "background .15s" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Card style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ fontWeight: 700, color: "var(--t1)" }}>This Week</div>
+          <div style={{ fontSize: 11, color: "var(--tm)" }}>{fmtShort(weekStart)} – {fmtShort(weekEnd)}</div>
+        </div>
+        <WeeklyBarChart data={weeklyData} />
+        {todayTotal > 0 && (
+          <div style={{ fontSize: 11, color: "var(--tm)", marginTop: 6, textAlign: "center" }}>
+            Today is {DAY_NAMES[now.getDay()]} — {todayTotal} {metric === "quantity" ? "units" : "incident"}{todayTotal !== 1 ? "s" : ""} so far
+            {weeklyData[maxDay] === todayTotal && todayTotal > 0 ? " — highest day this week" : ""}
+          </div>
+        )}
+        {weeklyData.every(v => v === 0) && <div style={{ fontSize: 12, color: "var(--tm)", textAlign: "center", marginTop: 6 }}>No incidents this week yet.</div>}
+      </Card>
+
+      <Card>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ fontWeight: 700, color: "var(--t1)" }}>{now.toLocaleDateString("en-AU", { month: "long", year: "numeric" })}</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[["totals","Weekly Totals"],["breakdown","Day Breakdown"]].map(([val, label]) => (
+              <button key={val} onClick={() => setMonthTab(val)} style={{ padding: "4px 10px", background: monthTab === val ? "var(--a)" : "transparent", color: monthTab === val ? "#000" : "var(--tm)", border: `1px solid ${monthTab === val ? "var(--a)" : "var(--b)"}`, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "var(--fb)" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {monthTab === "totals" && <MonthlyTotalsChart weeks={monthlyTotals} />}
+        {monthTab === "breakdown" && <MonthlyBreakdownChart data={monthlyBreakdown} />}
+        {monthlyTotals.every(w => w.total === 0) && <div style={{ fontSize: 12, color: "var(--tm)", textAlign: "center", marginTop: 6 }}>No incidents this month yet.</div>}
+        {monthTab === "breakdown" && (
+          <div style={{ fontSize: 10, color: "var(--tm)", marginTop: 8 }}>Each bar cluster is a day of the week — bars represent Week 1 (lightest) through Week {monthlyTotals.length} (darkest).</div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function TheftIncidentForm({ items, locations, numAisles, numBays, depts, session, onSave, onClose }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [search, setSearch]         = useState("");
+  const [selectedItem, setSelected] = useState(null);
+  const [showDrop, setShowDrop]     = useState(false);
+  const [qty, setQty]               = useState("1");
+  const [date, setDate]             = useState(today);
+  const [aisle, setAisle]           = useState("");
+  const [bay, setBay]               = useState("");
+  const [foundAtId, setFoundAtId]   = useState("");
+  const [notes, setNotes]           = useState("");
+  const [saving, setSaving]         = useState(false);
+  const inputRef = useRef();
+
+  const aisleOpts = buildAisleOptions(numAisles, depts);
+  const bayOpts   = buildBayOptions(numBays);
+
+  const filteredItems = items.filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
+  const showAddNew    = search.trim() && !items.find(i => i.name.toLowerCase() === search.trim().toLowerCase());
+
+  const selectItem = (item) => { setSelected(item); setSearch(item.name); setShowDrop(false); };
+
+  const handleSave = async () => {
+    if (!selectedItem || !qty) return;
+    setSaving(true);
+    await onSave({
+      selectedItem, qty: parseInt(qty) || 1, date, aisle, bay, foundAtId: foundAtId || null, notes, loggedBy: session.displayName,
+    });
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <Modal title="Log Theft Incident" onClose={onClose}>
+      <Field label="Item">
+        <div style={{ position: "relative" }}>
+          <input ref={inputRef} style={IS} placeholder="Search or add item..." value={search}
+            onChange={e => { setSearch(e.target.value); setSelected(null); setShowDrop(true); }}
+            onFocus={() => setShowDrop(true)} />
+          {showDrop && (search || filteredItems.length > 0) && (
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--s)", border: "1px solid var(--b)", borderTop: "none", borderRadius: "0 0 8px 8px", zIndex: 10, maxHeight: 200, overflowY: "auto" }}>
+              {filteredItems.map(i => (
+                <div key={i.id} onClick={() => selectItem(i)} style={{ padding: "8px 12px", cursor: "pointer", color: "var(--t2)", fontSize: 13 }}
+                  onMouseEnter={e => e.currentTarget.style.background = "var(--c)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  {i.name}
+                </div>
+              ))}
+              {showAddNew && (
+                <div onClick={() => selectItem({ id: "new", name: search.trim() })} style={{ padding: "8px 12px", cursor: "pointer", color: "var(--a)", fontSize: 13, borderTop: filteredItems.length ? "1px solid var(--b)" : "none" }}>
+                  + Add "{search.trim()}" as new item
+                </div>
+              )}
+              {!filteredItems.length && !showAddNew && (
+                <div style={{ padding: "8px 12px", color: "var(--tm)", fontSize: 12 }}>No items found</div>
+              )}
+            </div>
+          )}
+        </div>
+      </Field>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <Field label="Quantity"><input style={IS} type="number" min="1" value={qty} onChange={e => setQty(e.target.value)} /></Field>
+        <Field label="Date Found"><input style={IS} type="date" value={date} onChange={e => setDate(e.target.value)} /></Field>
+      </div>
+
+      <Field label="Shelf Location (where item came from)" hint="Optional">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <select style={IS} value={aisle} onChange={e => { setAisle(e.target.value); setBay(""); }}>
+            <option value="">Aisle / Dept</option>
+            {aisleOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <select style={IS} value={bay} onChange={e => setBay(e.target.value)} disabled={!aisle}>
+            <option value="">Bay</option>
+            {bayOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+      </Field>
+
+      <Field label="Found At" hint="Optional — where theft was detected">
+        <select style={IS} value={foundAtId} onChange={e => setFoundAtId(e.target.value)}>
+          <option value="">Select location...</option>
+          {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+        </select>
+      </Field>
+
+      <Field label="Notes"><textarea style={{ ...IS, height: 72, resize: "vertical" }} placeholder="Optional notes..." value={notes} onChange={e => setNotes(e.target.value)} /></Field>
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={handleSave} disabled={!selectedItem || saving} style={{ ...BP, flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          {saving ? <Spin /> : "Log Incident"}
+        </button>
+        <button onClick={onClose} style={BS}>Cancel</button>
+      </div>
+    </Modal>
+  );
+}
+
+function TheftIncidentsList({ incidents, itemMap, locMap, itemResolvedMap, items, locations,
+  statusFilter, setStatusFilter, itemFilter, setItemFilter,
+  locationFilter, setLocationFilter, onDelete }) {
+  const fmtShelf = (aisle, bay) => aisle ? (bay ? `${aisle} · Bay ${bay}` : aisle) : "";
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
+        {["all","active","resolved"].map(f => (
+          <button key={f} onClick={() => setStatusFilter(f)} style={{ ...BS, padding: "5px 14px", fontSize: 12, borderColor: statusFilter === f ? "var(--a)" : "var(--b)", color: statusFilter === f ? "var(--a)" : "var(--tm)" }}>
+            {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+          </button>
+        ))}
+        <select value={itemFilter} onChange={e => setItemFilter(e.target.value)} style={{ ...IS, width: "auto", padding: "5px 10px", fontSize: 12, marginLeft: 8 }}>
+          <option value="">All items</option>
+          {items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+        </select>
+        <select value={locationFilter} onChange={e => setLocationFilter(e.target.value)} style={{ ...IS, width: "auto", padding: "5px 10px", fontSize: 12 }}>
+          <option value="">All locations</option>
+          {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+        </select>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10, gap: 8 }}>
+        <button onClick={() => {
+          const itemMap2 = Object.fromEntries(items.map(i => [i.id, i.name]));
+          const locMap2  = Object.fromEntries(locations.map(l => [l.id, l.name]));
+          const csv = generateTheftCSV(incidents, itemMap2, locMap2);
+          downloadTheftCSV(csv, `shelfalert-theft-${new Date().toISOString().slice(0, 10)}.csv`);
+        }} style={{ ...BS, padding: "5px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+          <Icon d={IC.dl} size={13} /> Export CSV
+        </button>
+        <button onClick={() => {
+          const prev = document.title;
+          document.title = `ShelfAlert Theft Report — ${new Date().toLocaleDateString("en-AU")}`;
+          window.print();
+          document.title = prev;
+        }} style={{ ...BS, padding: "5px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+          <Icon d={IC.report} size={13} /> Export PDF
+        </button>
+      </div>
+
+      {incidents.length === 0 && (
+        <div style={{ color: "var(--tm)", fontSize: 13, padding: "32px 0", textAlign: "center" }}>No incidents match the current filters.</div>
+      )}
+
+      {incidents.map(inc => {
+        const resolved = itemResolvedMap[inc.itemId];
+        return (
+          <Card key={inc.id} style={{ marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, color: "var(--t1)", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {itemMap[inc.itemId] || "Unknown item"}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--tm)" }}>
+                  Qty: {inc.quantity}
+                  {fmtShelf(inc.shelfAisle, inc.shelfBay) && ` · ${fmtShelf(inc.shelfAisle, inc.shelfBay)}`}
+                  {inc.foundAtId && locMap[inc.foundAtId] && ` → ${locMap[inc.foundAtId]}`}
+                  {inc.incidentDate && ` · ${fmtDate(inc.incidentDate)}`}
+                </div>
+                {inc.notes && <div style={{ fontSize: 11, color: "var(--t2)", background: "var(--ib)", borderRadius: 6, padding: "4px 8px", marginTop: 4 }}>"{inc.notes}"</div>}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <span style={{ background: resolved ? "#0f2e1a" : "#0f1e35", color: resolved ? "#4ade80" : "#60a5fa", border: `1px solid ${resolved ? "#1a5c30" : "#1a3a6a"}`, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>
+                  {resolved ? "Resolved ✓" : "Active"}
+                </span>
+                <button onClick={() => onDelete(inc.id)} style={{ ...BD, padding: "4px 10px", fontSize: 11 }}>
+                  <Icon d={IC.trash} size={13} />
+                </button>
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function HighTheftView({ incidents, items, locations, numAisles, numBays, depts, session,
+  onShowForm, onAddIncident, onAddItem, onToggleResolved, onDeleteIncident, onAddLocation, onDeleteLocation }) {
+  const [tab, setTab] = useState("incidents");
+  const [metric, setMetric] = useState("incidents");
+  const [monthTab, setMonthTab] = useState("totals");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [itemFilter, setItemFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+
+  const now = new Date();
+  const weekStart = (() => { const d = new Date(now); d.setHours(0,0,0,0); d.setDate(d.getDate() - d.getDay()); return d; })();
+  const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 7);
+  const thisWeekCount = incidents.filter(inc => { const d = new Date(inc.incidentDate); return d >= weekStart && d < weekEnd; }).length;
+
+  const activeItemIds = new Set(items.filter(i => !i.resolved).map(i => i.id));
+  const itemCounts = {};
+  incidents.forEach(inc => { if (activeItemIds.has(inc.itemId)) itemCounts[inc.itemId] = (itemCounts[inc.itemId] || 0) + 1; });
+  const topItemId = Object.entries(itemCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const topItem = items.find(i => i.id === topItemId);
+  const resolvedCount = items.filter(i => i.resolved).length;
+
+  const itemMap = Object.fromEntries(items.map(i => [i.id, i.name]));
+  const locMap  = Object.fromEntries(locations.map(l => [l.id, l.name]));
+  const itemResolvedMap = Object.fromEntries(items.map(i => [i.id, i.resolved]));
+  const locReportCounts = {};
+  incidents.forEach(inc => { if (inc.foundAtId) locReportCounts[inc.foundAtId] = (locReportCounts[inc.foundAtId] || 0) + 1; });
+
+  const filtered = incidents.filter(inc => {
+    if (statusFilter === "active"   && itemResolvedMap[inc.itemId])  return false;
+    if (statusFilter === "resolved" && !itemResolvedMap[inc.itemId]) return false;
+    if (itemFilter     && inc.itemId    !== itemFilter)     return false;
+    if (locationFilter && inc.foundAtId !== locationFilter) return false;
+    return true;
+  });
+
+  const itemStats = items.map(item => {
+    const incs = incidents.filter(inc => inc.itemId === item.id);
+    const aisles = {};
+    incs.forEach(inc => { if (inc.shelfAisle) aisles[inc.shelfAisle] = (aisles[inc.shelfAisle] || 0) + 1; });
+    const topAisle = Object.entries(aisles).sort((a, b) => b[1] - a[1])[0]?.[0];
+    return { ...item, count: incs.length, lastDate: incs[0]?.incidentDate, topAisle };
+  }).sort((a, b) => b.count - a.count);
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div style={{ fontSize: 13, color: "var(--tm)" }}>Track, analyse, and resolve theft patterns</div>
+        <button onClick={onShowForm} style={{ ...BP, display: "flex", alignItems: "center", gap: 6 }}>
+          <Icon d={IC.plus} size={14} /> Log Incident
+        </button>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
+        <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>This Week</div><div style={{ fontSize: 28, fontWeight: 700, color: "var(--t1)", lineHeight: 1 }}>{thisWeekCount}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>incidents</div></Card>
+        <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Top Item</div><div style={{ fontSize: 14, fontWeight: 700, color: "#f97316", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{topItem?.name || "—"}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>{topItemId ? `${itemCounts[topItemId]} incidents` : "no data"}</div></Card>
+        <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Resolved</div><div style={{ fontSize: 28, fontWeight: 700, color: "#4ade80", lineHeight: 1 }}>{resolvedCount}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>items solved</div></Card>
+      </div>
+
+      <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "1px solid var(--b)" }}>
+        {[["incidents","Incidents"],["charts","Charts"],["items","Items & Locations"]].map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)} style={{ background: "none", border: "none", borderBottom: tab === id ? "2px solid var(--a)" : "2px solid transparent", color: tab === id ? "var(--a)" : "var(--tm)", padding: "8px 16px", cursor: "pointer", fontSize: 13, fontFamily: "var(--fb)", fontWeight: tab === id ? 700 : 400, marginBottom: -1, transition: "color .15s" }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "incidents" && <TheftIncidentsList incidents={filtered} itemMap={itemMap} locMap={locMap} itemResolvedMap={itemResolvedMap} items={items} locations={locations} statusFilter={statusFilter} setStatusFilter={setStatusFilter} itemFilter={itemFilter} setItemFilter={setItemFilter} locationFilter={locationFilter} setLocationFilter={setLocationFilter} onDelete={onDeleteIncident} />}
+      {tab === "charts"    && <TheftChartsTab incidents={incidents} metric={metric} setMetric={setMetric} monthTab={monthTab} setMonthTab={setMonthTab} />}
+      {tab === "items"     && <TheftItemsTab itemStats={itemStats} locations={locations} locReportCounts={locReportCounts} onToggleResolved={onToggleResolved} onAddItem={onAddItem} onAddLocation={onAddLocation} onDeleteLocation={onDeleteLocation} />}
+      <TheftPrintReport incidents={filtered} items={items} locations={locations} />
+    </div>
+  );
+}
+
 // ─── NAV ──────────────────────────────────────────────────────────────────────
 const NAV = [
   { id: "dashboard", label: "Dashboard", icon: IC.home },
@@ -1175,6 +1752,57 @@ export default function ShelfAlert() {
     toast$("Department removed");
   };
 
+  const handleAddTheftIncident = async ({ selectedItem, qty, date, aisle, bay, foundAtId, notes, loggedBy }) => {
+    let itemId = selectedItem.id;
+    if (itemId === "new") {
+      const res = await supabase.from("theft_items").insert({ name: selectedItem.name }).select().single();
+      if (res.error || !res.data) { toast$("Failed to create item", "error"); return; }
+      setTheftItems(prev => [...prev, mapTheftItem(res.data)]);
+      itemId = res.data.id;
+    }
+    const body = { item_id: itemId, quantity: qty, shelf_aisle: aisle || null, shelf_bay: bay || null, found_at_id: foundAtId || null, incident_date: date, notes: notes || null, logged_by: loggedBy };
+    const res = await supabase.from("theft_incidents").insert(body).select().single();
+    if (res.error || !res.data) { toast$("Failed to log incident", "error"); return; }
+    setTheftIncidents(prev => [mapTheftIncident(res.data), ...prev]);
+    toast$("✓ Incident logged");
+  };
+
+  const handleToggleTheftItemResolved = async (id, resolved) => {
+    const body = { resolved, resolved_at: resolved ? new Date().toISOString() : null };
+    const res = await supabase.from("theft_items").update(body).eq("id", id).select().single();
+    if (res.error || !res.data) { toast$("Failed to update", "error"); return; }
+    setTheftItems(prev => prev.map(i => i.id === id ? mapTheftItem(res.data) : i));
+    toast$(resolved ? "✓ Marked resolved" : "✓ Reopened");
+  };
+
+  const handleAddTheftItem = async (name) => {
+    const res = await supabase.from("theft_items").insert({ name }).select().single();
+    if (res.error || !res.data) { toast$("Failed to add item", "error"); return; }
+    setTheftItems(prev => [...prev, mapTheftItem(res.data)]);
+    toast$("✓ Item added");
+  };
+
+  const handleDeleteTheftIncident = async (id) => {
+    const { error } = await supabase.from("theft_incidents").delete().eq("id", id);
+    if (error) { toast$("Failed to delete", "error"); return; }
+    setTheftIncidents(prev => prev.filter(i => i.id !== id));
+    toast$("Incident removed");
+  };
+
+  const handleAddTheftLocation = async (name) => {
+    const res = await supabase.from("theft_locations").insert({ name }).select().single();
+    if (res.error || !res.data) { toast$("Failed to add location", "error"); return; }
+    setTheftLocations(prev => [...prev, mapTheftLocation(res.data)]);
+    toast$("✓ Location added");
+  };
+
+  const handleDeleteTheftLocation = async (id) => {
+    const { error } = await supabase.from("theft_locations").delete().eq("id", id);
+    if (error) { toast$("Failed to delete", "error"); return; }
+    setTheftLocations(prev => prev.filter(l => l.id !== id));
+    toast$("Location removed");
+  };
+
   const handleDismissNotif = async (id) => {
     await sb.update("notifications", session.token, { id }, { read: true });
     setNotifs(n => n.filter(notif => notif.id !== id));
@@ -1233,6 +1861,7 @@ export default function ShelfAlert() {
             {view === "suppliers" && <SuppliersView suppliers={suppliers} gaps={gaps} credits={credits} onAdd={() => { setEditSup(null); setShowSupForm(true); }} onEdit={s => { setEditSup(s); setShowSupForm(true); }} onDelete={handleDeleteSup} onAddCredit={handleAddCredit} onUpdateCreditStatus={handleUpdateCreditStatus} onDeleteCredit={handleDeleteCredit} />}
             {view === "reports"   && <ReportsView gaps={gaps} suppliers={suppliers} credits={credits} />}
             {view === "settings"  && <SettingsView settings={settings} depts={depts} onSave={handleSaveSettings} saving={saving} onAddDept={handleAddDept} onUpdateDept={handleUpdateDept} onDeleteDept={handleDeleteDept} />}
+            {view === "theft"     && <HighTheftView incidents={theftIncidents} items={theftItems} locations={theftLocations} numAisles={settings.numAisles} numBays={settings.numBays} depts={depts} session={session} onShowForm={() => setShowTheftForm(true)} onAddIncident={handleAddTheftIncident} onAddItem={handleAddTheftItem} onToggleResolved={handleToggleTheftItemResolved} onDeleteIncident={handleDeleteTheftIncident} onAddLocation={handleAddTheftLocation} onDeleteLocation={handleDeleteTheftLocation} />}
           </div>
         </main>
       </div>
@@ -1262,6 +1891,7 @@ export default function ShelfAlert() {
       {showCodeForm && <CodeForm suppliers={suppliers} numAisles={settings.numAisles} numBays={settings.numBays} depts={depts} onSave={handleAddCode} onClose={() => setShowCodeForm(false)} />}
       {showSupForm  && <SupplierForm supplier={editSup} onSave={handleSaveSup} onClose={() => { setShowSupForm(false); setEditSup(null); }} />}
       {resolveTarget && <ResolveModal gapId={resolveTarget.gapId} status={resolveTarget.status} onConfirm={handleResolveConfirm} onClose={() => setResolveTarget(null)} />}
+      {showTheftForm && <TheftIncidentForm items={theftItems} locations={theftLocations} numAisles={settings.numAisles} numBays={settings.numBays} depts={depts} session={session} onSave={handleAddTheftIncident} onClose={() => setShowTheftForm(false)} />}
       {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
     </>
   );
@@ -1277,6 +1907,18 @@ const CSS = `
   ::-webkit-scrollbar{width:6px;height:6px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--b);border-radius:3px;}
   @keyframes spin{to{transform:rotate(360deg);}}
   .mobile-header{display:none;}.mobile-nav{display:none;}
+  @media print{
+    body > div > aside,
+    body > div > main > div > div:first-child,
+    .mobile-header,.mobile-nav,
+    button,select,input { display: none !important; }
+    body > div > main { margin-left: 0 !important; max-width: 100% !important; padding: 0 !important; }
+    #theft-print-report { display: block !important; }
+    #theft-print-report table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    #theft-print-report th { background: #f0f0f0; text-align: left; padding: 6px 8px; border-bottom: 2px solid #ccc; }
+    #theft-print-report td { padding: 5px 8px; border-bottom: 1px solid #eee; }
+    #theft-print-report .print-stat { display: inline-block; border: 1px solid #ccc; border-radius: 6px; padding: 8px 16px; margin-right: 12px; margin-bottom: 12px; }
+  }
   @media(max-width:680px){
     aside{display:none!important;}
     main{margin-left:0!important;max-width:100vw!important;padding:70px 14px 90px!important;}
