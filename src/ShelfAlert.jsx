@@ -181,6 +181,9 @@ const mapSettings = (s) => ({
   numAisles: s.num_aisles || 12, numBays: s.num_bays || 20,
 });
 const mapDept = (d) => ({ id: d.id, code: d.code, label: d.label });
+const mapTheftItem = (t) => ({ id: t.id, name: t.name, resolved: t.resolved, resolvedAt: t.resolved_at, createdAt: t.created_at });
+const mapTheftIncident = (i) => ({ id: i.id, itemId: i.item_id, quantity: i.quantity, shelfAisle: i.shelf_aisle, shelfBay: i.shelf_bay, foundAtId: i.found_at_id, incidentDate: i.incident_date, notes: i.notes, loggedBy: i.logged_by, loggedAt: i.logged_at });
+const mapTheftLocation = (l) => ({ id: l.id, name: l.name });
 
 // ─── AI DESCRIPTION ───────────────────────────────────────────────────────────
 async function aiDescribe(base64) {
@@ -224,6 +227,7 @@ const IC = {
   code:   ["M12 2a10 10 0 100 20A10 10 0 0012 2z","M12 6v6l4 2"],
   chev:   "M6 9l6 6 6-6",
   dollar: ["M12 1v22","M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"],
+  shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
 };
 
 // ─── SHARED UI ────────────────────────────────────────────────────────────────
@@ -965,6 +969,7 @@ const NAV = [
   { id: "code",      label: "Near Code", icon: IC.code },
   { id: "suppliers", label: "Suppliers", icon: IC.sup },
   { id: "reports",   label: "Reports",   icon: IC.report },
+  { id: "theft",     label: "High Theft Items", icon: IC.shield },
   { id: "settings",  label: "Settings",  icon: IC.cog },
 ];
 
@@ -980,6 +985,10 @@ export default function ShelfAlert() {
   const [notifs, setNotifs] = useState([]);
   const [settings, setSettings] = useState({ id: null, storeName: "", storeEmail: "", timezone: "Australia/Perth", notifTime: "06:00", numAisles: 12, numBays: 20 });
   const [depts, setDepts] = useState([]);
+  const [theftItems, setTheftItems] = useState([]);
+  const [theftIncidents, setTheftIncidents] = useState([]);
+  const [theftLocations, setTheftLocations] = useState([]);
+  const [showTheftForm, setShowTheftForm] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showGapForm, setShowGapForm] = useState(false);
