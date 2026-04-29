@@ -1009,7 +1009,7 @@ export default function ShelfAlert() {
       } catch (e) { console.error(`${table} fetch error:`, e); return []; }
     };
     try {
-      const [rawGaps, rawSups, rawNotifs, rawSettings, rawCode, rawCredits, rawDepts] = await Promise.all([
+      const [rawGaps, rawSups, rawNotifs, rawSettings, rawCode, rawCredits, rawDepts, rawTheftItems, rawTheftIncidents, rawTheftLocations] = await Promise.all([
         q("gaps",             supabase.from("gaps").select("*").order("logged_at", { ascending: false })),
         q("suppliers",        supabase.from("suppliers").select("*").order("name")),
         q("notifications",    supabase.from("notifications").select("*").eq("read", false).order("created_at", { ascending: false }).limit(15)),
@@ -1017,6 +1017,9 @@ export default function ShelfAlert() {
         q("close_to_code",    supabase.from("close_to_code").select("*").order("use_by_date")),
         q("supplier_credits", supabase.from("supplier_credits").select("*").order("date_raised", { ascending: false })),
         q("departments",      supabase.from("departments").select("*").order("code")),
+        q("theft_items",      supabase.from("theft_items").select("*").order("created_at")),
+        q("theft_incidents",  supabase.from("theft_incidents").select("*").order("incident_date", { ascending: false })),
+        q("theft_locations",  supabase.from("theft_locations").select("*").order("created_at")),
       ]);
       setGaps(rawGaps.map(mapGap));
       setSuppliers(rawSups.map(mapSupplier));
@@ -1024,6 +1027,9 @@ export default function ShelfAlert() {
       setCodeItems(rawCode.map(mapCode));
       setCredits(rawCredits.map(mapCredit));
       setDepts(rawDepts.map(mapDept));
+      setTheftItems(rawTheftItems.map(mapTheftItem));
+      setTheftIncidents(rawTheftIncidents.map(mapTheftIncident));
+      setTheftLocations(rawTheftLocations.map(mapTheftLocation));
       const rs = rawSettings[0];
       if (rs && !rs.error) setSettings(mapSettings(rs));
     } catch (e) { console.error("loadAll error:", e); toast$("Failed to load data", "error"); }
