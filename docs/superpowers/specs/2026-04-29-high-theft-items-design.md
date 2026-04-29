@@ -164,10 +164,44 @@ On save: inserts to `theft_incidents`, prepends to local state.
 
 ---
 
+## Export / Security Report
+
+An "Export" button lives in the Incidents tab header (alongside the filters). It exports the currently filtered incident list — so the user can scope by date, item, or location before exporting.
+
+Two formats, offered as separate buttons or a dropdown:
+
+### CSV Export
+Client-side generation using a `Blob` — no server call needed.
+
+**Columns:**
+| Date | Item | Quantity | Shelf Aisle | Shelf Bay | Found At | Notes | Logged By |
+
+- Filename: `shelfalert-theft-[YYYY-MM-DD].csv`
+- Respects active filters (exports what the user is currently viewing)
+- Opens a download dialog immediately
+
+### PDF Summary Report
+Client-side generation using the browser's `window.print()` with a dedicated print stylesheet — no PDF library needed.
+
+**Contents:**
+1. Store name + report date range
+2. Summary stats: total incidents, total quantity, top item, most common found-at location
+3. Active items table: item name, incident count, last seen, most common shelf location, status
+4. Full incident log table (same columns as CSV)
+
+- Triggered via a hidden `<div id="theft-print-report">` that is only visible when `window.print()` is called
+- Print CSS hides all app chrome (sidebar, nav, buttons) and shows only the report div
+- Filename suggested via `document.title` swap before print
+
+### Implementation note
+Both exports are pure client-side — no new dependencies. CSV uses `URL.createObjectURL(new Blob(...))`. PDF uses `window.print()` with `@media print` CSS already injected into the app's `<style>` block.
+
+---
+
 ## Implementation Approach
 
 - All code added inline to `ShelfAlert.jsx`, following existing patterns
-- No new npm packages — charts built as custom SVG components
+- No new npm packages — charts built as custom SVG components, exports are client-side
 - New state in root `ShelfAlert()` component:
   ```js
   const [theftItems, setTheftItems] = useState([]);
@@ -183,4 +217,3 @@ On save: inserts to `theft_incidents`, prepends to local state.
 
 - Linking incidents to suppliers (theft is not supplier-related)
 - Per-incident notes editing after save (log-and-done, same as other views)
-- Export/reporting of theft data (can be added to Reports view later)
