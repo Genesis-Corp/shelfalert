@@ -127,10 +127,12 @@ const CREDIT_STATUS_META = {
   resolved:  { label: "Resolved",  bg: "#1a1a1a", text: "#5a6478", border: "#2a2a2a" },
 };
 const STATUS_META = {
-  missed:      { label: "Missed",      bg: "#3d1a1a", text: "#ff7070", border: "#7a2a2a" },
-  ordered:     { label: "Ordered",     bg: "#0f2e1a", text: "#4ade80", border: "#1a5c30" },
-  unavailable: { label: "Unavailable", bg: "#1e1a00", text: "#fbbf24", border: "#5a4a00" },
-  open:        { label: "Open",        bg: "#0f1e35", text: "#60a5fa", border: "#1a3a6a" },
+  missed:              { label: "Missed",       bg: "#3d1a1a", text: "#ff7070", border: "#7a2a2a" },
+  ordered:             { label: "Ordered",      bg: "#0f2e1a", text: "#4ade80", border: "#1a5c30" },
+  unavailable:         { label: "Unavailable",  bg: "#1e1a00", text: "#fbbf24", border: "#5a4a00" },
+  open:                { label: "Open",         bg: "#0f1e35", text: "#60a5fa", border: "#1a3a6a" },
+  deletion_confirmed:  { label: "Deletion ✓",  bg: "#1e0a30", text: "#c4b5fd", border: "#5a2a9a" },
+  deletion_followup:   { label: "Follow Up",   bg: "#2a1500", text: "#f97316", border: "#7a3500" },
 };
 const CODE_STATUS_META = {
   active:      { label: "Active",      bg: "#0f1e35", text: "#60a5fa", border: "#1a3a6a" },
@@ -468,12 +470,15 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
 function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
   const [filter, setFilter] = useState("all");
   const [supFilter, setSupFilter] = useState("all");
+  const [deletionOpen, setDeletionOpen] = useState(null);
+  const [enlargedImage, setEnlargedImage] = useState(null);
   const filtered = gaps.filter(g => (filter === "all" || g.status === filter) && (supFilter === "all" || g.supplierId === supFilter));
+  const FILTERS = ["all","open","missed","ordered","unavailable","deletion_confirmed","deletion_followup"];
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {["all","open","missed","ordered","unavailable"].map(f => <button key={f} onClick={() => setFilter(f)} style={{ ...BS, padding: "6px 14px", fontSize: 12, borderColor: filter === f ? "var(--a)" : "var(--b)", color: filter === f ? "var(--a)" : "var(--tm)" }}>{f === "all" ? "All" : STATUS_META[f]?.label || f}</button>)}
+          {FILTERS.map(f => <button key={f} onClick={() => setFilter(f)} style={{ ...BS, padding: "6px 14px", fontSize: 12, borderColor: filter === f ? "var(--a)" : "var(--b)", color: filter === f ? "var(--a)" : "var(--tm)" }}>{f === "all" ? "All" : STATUS_META[f]?.label || f}</button>)}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <select value={supFilter} onChange={e => setSupFilter(e.target.value)} style={{ ...IS, width: "auto", fontSize: 12, padding: "6px 12px" }}><option value="all">All Suppliers</option>{suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
@@ -483,10 +488,14 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
       {filtered.length === 0 && <div style={{ textAlign: "center", color: "var(--tm)", padding: 40, fontSize: 14 }}>No gaps match this filter.</div>}
       {filtered.map(g => {
         const sup = suppliers.find(s => s.id === g.supplierId);
+        const isDeletionStatus = g.status === "deletion_confirmed" || g.status === "deletion_followup";
         return (
           <Card key={g.id} style={{ marginBottom: 10 }}>
             <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-              {g.imageUrl && <img src={g.imageUrl} alt="" style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />}
+              {g.imageUrl && (
+                <img src={g.imageUrl} alt="" onClick={() => setEnlargedImage(g.imageUrl)}
+                  style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0, cursor: "zoom-in" }} />
+              )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}><Dot priority={g.priority} /><span style={{ fontWeight: 700, fontSize: 15, color: "var(--t1)" }}>{g.description}</span><Badge status={g.status} />{g.priority === "high" && <span style={{ fontSize: 10, color: "#ef4444", fontFamily: "var(--fm)", letterSpacing: 1 }}>HIGH PRIORITY</span>}</div>
                 <div style={{ fontSize: 12, color: "var(--tm)", marginBottom: 6, display: "flex", flexWrap: "wrap", gap: "4px 14px" }}><span>🏢 {sup?.name||"—"}</span><span>📍 {fmtLocation(g.aisle, g.bay)}</span><span>👤 {g.loggedBy}</span><span>🕐 {fmtDate(g.loggedAt)}</span></div>
@@ -494,13 +503,37 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
                 {g.unavailableUntil && <div style={{ fontSize: 11, color: "#fbbf24", marginTop: 4 }}>📅 Expected back: {fmtDate(g.unavailableUntil)}</div>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-                {g.status !== "ordered" && <><button onClick={() => onResolve(g.id, "ordered")} style={{ ...BP, padding: "5px 12px", fontSize: 12 }}>Ordered</button><button onClick={() => onResolve(g.id, "unavailable")} style={{ ...BS, padding: "5px 12px", fontSize: 12 }}>Unavailable</button></>}
+                {!isDeletionStatus && g.status !== "ordered" && (
+                  <button onClick={() => onResolve(g.id, "ordered")} style={{ ...BP, padding: "5px 12px", fontSize: 12 }}>Ordered</button>
+                )}
+                {!isDeletionStatus && (
+                  <button onClick={() => onResolve(g.id, "unavailable")} style={{ ...BS, padding: "5px 12px", fontSize: 12 }}>Unavailable</button>
+                )}
+                {!isDeletionStatus && (
+                  deletionOpen === g.id ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                      <button onClick={() => { onResolve(g.id, "deletion_confirmed"); setDeletionOpen(null); }} style={{ background: "#1e0a30", color: "#c4b5fd", border: "1px solid #5a2a9a", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Confirmed</button>
+                      <button onClick={() => { onResolve(g.id, "deletion_followup"); setDeletionOpen(null); }} style={{ background: "#2a1500", color: "#f97316", border: "1px solid #7a3500", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Follow Up</button>
+                      <button onClick={() => setDeletionOpen(null)} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}>✕</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setDeletionOpen(g.id)} style={{ background: "#1e0a30", color: "#c4b5fd", border: "1px solid #5a2a9a", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Deletion</button>
+                  )
+                )}
                 <button onClick={() => onDelete(g.id)} style={{ ...BD, padding: "5px 12px", fontSize: 12 }}>Delete</button>
               </div>
             </div>
           </Card>
         );
       })}
+
+      {enlargedImage && (
+        <div onClick={() => setEnlargedImage(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}>
+          <img src={enlargedImage} alt="" onClick={e => e.stopPropagation()}
+            style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: 12, objectFit: "contain", boxShadow: "0 8px 40px rgba(0,0,0,0.8)", cursor: "default" }} />
+          <button onClick={() => setEnlargedImage(null)} style={{ position: "absolute", top: 20, right: 20, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 14, fontFamily: "var(--fb)" }}>✕ Close</button>
+        </div>
+      )}
     </div>
   );
 }
