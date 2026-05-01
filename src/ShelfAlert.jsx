@@ -1331,7 +1331,9 @@ function TheftIncidentForm({ items, locations, numAisles, numBays, depts, sessio
   const [date, setDate]             = useState(today);
   const [aisle, setAisle]           = useState("");
   const [bay, setBay]               = useState("");
-  const [foundAtId, setFoundAtId]   = useState("");
+  const [locSearch, setLocSearch]   = useState("");
+  const [selectedLoc, setSelectedLoc] = useState(null);
+  const [showLocDrop, setShowLocDrop] = useState(false);
   const [notes, setNotes]           = useState("");
   const [saving, setSaving]         = useState(false);
   const inputRef = useRef();
@@ -1341,14 +1343,17 @@ function TheftIncidentForm({ items, locations, numAisles, numBays, depts, sessio
 
   const filteredItems = items.filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
   const showAddNew    = search.trim() && !items.find(i => i.name.toLowerCase() === search.trim().toLowerCase());
+  const filteredLocs  = locations.filter(l => l.name.toLowerCase().includes(locSearch.toLowerCase()));
+  const showAddNewLoc = locSearch.trim() && !locations.find(l => l.name.toLowerCase() === locSearch.trim().toLowerCase());
 
   const selectItem = (item) => { setSelected(item); setSearch(item.name); setShowDrop(false); };
+  const selectLoc  = (loc)  => { setSelectedLoc(loc); setLocSearch(loc.name); setShowLocDrop(false); };
 
   const handleSave = async () => {
     if (!selectedItem || !qty) return;
     setSaving(true);
     await onSave({
-      selectedItem, qty: parseInt(qty) || 1, date, aisle, bay, foundAtId: foundAtId || null, notes, loggedBy: session.displayName,
+      selectedItem, qty: parseInt(qty) || 1, date, aisle, bay, selectedLoc: selectedLoc || null, notes, loggedBy: session.displayName,
     });
     setSaving(false);
     onClose();
@@ -1359,7 +1364,7 @@ function TheftIncidentForm({ items, locations, numAisles, numBays, depts, sessio
       <Field label="Item">
         <div style={{ position: "relative" }}>
           <input ref={inputRef} style={IS} placeholder="Search or add item..." value={search}
-            onChange={e => { setSearch(e.target.value); setSelected(null); setShowDrop(true); }}
+            onChange={e => { setSearch(e.target.value.toUpperCase()); setSelected(null); setShowDrop(true); }}
             onFocus={() => setShowDrop(true)} />
           {showDrop && (search || filteredItems.length > 0) && (
             <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--s)", border: "1px solid var(--b)", borderTop: "none", borderRadius: "0 0 8px 8px", zIndex: 10, maxHeight: 200, overflowY: "auto" }}>
@@ -1402,10 +1407,30 @@ function TheftIncidentForm({ items, locations, numAisles, numBays, depts, sessio
       </Field>
 
       <Field label="Found At" hint="Optional — where theft was detected">
-        <select style={IS} value={foundAtId} onChange={e => setFoundAtId(e.target.value)}>
-          <option value="">Select location...</option>
-          {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-        </select>
+        <div style={{ position: "relative" }}>
+          <input style={IS} placeholder="Search or add location..." value={locSearch}
+            onChange={e => { setLocSearch(e.target.value); setSelectedLoc(null); setShowLocDrop(true); }}
+            onFocus={() => setShowLocDrop(true)} />
+          {showLocDrop && (locSearch || filteredLocs.length > 0) && (
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--s)", border: "1px solid var(--b)", borderTop: "none", borderRadius: "0 0 8px 8px", zIndex: 10, maxHeight: 200, overflowY: "auto" }}>
+              {filteredLocs.map(l => (
+                <div key={l.id} onClick={() => selectLoc(l)} style={{ padding: "8px 12px", cursor: "pointer", color: "var(--t2)", fontSize: 13 }}
+                  onMouseEnter={e => e.currentTarget.style.background = "var(--c)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  {l.name}
+                </div>
+              ))}
+              {showAddNewLoc && (
+                <div onClick={() => selectLoc({ id: "new", name: locSearch.trim() })} style={{ padding: "8px 12px", cursor: "pointer", color: "var(--a)", fontSize: 13, borderTop: filteredLocs.length ? "1px solid var(--b)" : "none" }}>
+                  + Add "{locSearch.trim()}" as new location
+                </div>
+              )}
+              {!filteredLocs.length && !showAddNewLoc && (
+                <div style={{ padding: "8px 12px", color: "var(--tm)", fontSize: 12 }}>No locations found</div>
+              )}
+            </div>
+          )}
+        </div>
       </Field>
 
       <Field label="Notes"><textarea style={{ ...IS, height: 72, resize: "vertical" }} placeholder="Optional notes..." value={notes} onChange={e => setNotes(e.target.value)} /></Field>
@@ -1785,7 +1810,7 @@ export default function ShelfAlert() {
     toast$("Department removed");
   };
 
-  const handleAddTheftIncident = async ({ selectedItem, qty, date, aisle, bay, foundAtId, notes, loggedBy }) => {
+  const handleAddTheftIncident = async ({ selectedItem, qty, date, aisle, bay, selectedLoc, notes, loggedBy }) => {
     let itemId = selectedItem.id;
     if (itemId === "new") {
       const res = await supabase.from("theft_items").insert({ name: selectedItem.name }).select().single();
@@ -1793,7 +1818,14 @@ export default function ShelfAlert() {
       setTheftItems(prev => [...prev, mapTheftItem(res.data)]);
       itemId = res.data.id;
     }
-    const body = { item_id: itemId, quantity: qty, shelf_aisle: aisle || null, shelf_bay: bay || null, found_at_id: foundAtId || null, incident_date: date, notes: notes || null, logged_by: loggedBy };
+    let foundAtId = selectedLoc?.id || null;
+    if (foundAtId === "new") {
+      const res = await supabase.from("theft_locations").insert({ name: selectedLoc.name }).select().single();
+      if (res.error || !res.data) { toast$("Failed to create location", "error"); return; }
+      setTheftLocations(prev => [...prev, mapTheftLocation(res.data)]);
+      foundAtId = res.data.id;
+    }
+    const body = { item_id: itemId, quantity: qty, shelf_aisle: aisle || null, shelf_bay: bay || null, found_at_id: foundAtId, incident_date: date, notes: notes || null, logged_by: loggedBy };
     const res = await supabase.from("theft_incidents").insert(body).select().single();
     if (res.error || !res.data) { toast$("Failed to log incident", "error"); return; }
     setTheftIncidents(prev => [mapTheftIncident(res.data), ...prev]);
