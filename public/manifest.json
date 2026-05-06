@@ -1,9 +1,9 @@
 {
-  "short_name": "ShelfAlert",
-  "name": "ShelfAlert",
+  "short_name": "Ledgerline",
+  "name": "Ledgerline — Finance Suite",
   "icons": [
     {
-      "src": "shelf-icon.svg",
+      "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
@@ -11,6 +11,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#0ea5e9",
-  "background_color": "#0f172a"
+  "theme_color": "#0b3b66",
+  "background_color": "#0b3b66"
 }
