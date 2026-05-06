@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import ShelfAlert from './ShelfAlert';
+import App from './App';
+import './index.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<ShelfAlert />);
+root.render(<App />);
