@@ -834,7 +834,7 @@ function SettingsView({ settings, depts, onSave, saving, onAddDept, onUpdateDept
     <div style={{ maxWidth: 580 }}>
       <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 14 }}>Appearance</h3>
       <div role="group" aria-label="Colour theme" style={{ display: "flex", gap: 8, marginBottom: 28 }}>
-        {[["light", "Stone & Forest"], ["dark", "Graphite & Forest"]].map(([value, label]) => (
+        {[["light", "Stone & Forest"], ["dark", "Navy & Citrus"]].map(([value, label]) => (
           <button key={value} type="button" aria-pressed={theme === value} onClick={() => onThemeChange(value)} style={{ ...BS, flex: 1, background: theme === value ? "var(--ad)" : "var(--c)", color: theme === value ? "var(--a)" : "var(--t2)", borderColor: theme === value ? "var(--a)" : "var(--b)", padding: "12px 10px" }}>{label}</button>
         ))}
       </div>
@@ -2089,7 +2089,7 @@ export default function ShelfAlert() {
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700;800&display=swap');
   :root{--on-a:#ffffff;--badge-danger:#b23b38;--badge-info:#28689a;--badge-orange:#b45716;--bg:#f7f7f2;--s:#ffffff;--c:#ffffff;--b:#dce3dc;--ib:#f3f6f2;--a:#28745b;--ad:#e7f2eb;--t1:#24302b;--t2:#526159;--tm:#69786e;--fd:'Atkinson Hyperlegible Next',sans-serif;--fb:'Atkinson Hyperlegible Next',sans-serif;--fm:'Atkinson Hyperlegible Next',sans-serif;--positive:#28745b;--positive-bg:#e7f2eb;--positive-border:#b7dbc6;--danger:#b23b38;--danger-bg:#fbeceb;--danger-border:#e8b7b4;--orange:#b45716;--orange-bg:#fff0e4;--orange-border:#e9c2a2;--warning:#956100;--warning-bg:#fff4d9;--warning-border:#e6d09a;--info:#28689a;--info-bg:#eaf2f9;--info-border:#b8d4e8;--purple:#70549a;--purple-bg:#f2ebf9;--purple-border:#d8c6eb;}
-  :root[data-theme='dark']{--on-a:#1b3022;--badge-danger:#a73b35;--badge-info:#32648c;--badge-orange:#9b4b22;--bg:#202623;--s:#2a322e;--c:#303934;--b:#455349;--ib:#252e29;--a:#9ad2ab;--ad:#344c3e;--t1:#f2f5ef;--t2:#c5d1c5;--tm:#a6b8a9;--positive:#9ad2ab;--positive-bg:#294336;--positive-border:#4a7358;--danger:#ffaaa4;--danger-bg:#513330;--danger-border:#83504b;--orange:#ffbd8a;--orange-bg:#523d30;--orange-border:#856048;--warning:#ead28b;--warning-bg:#4b442e;--warning-border:#746843;--info:#a8ccec;--info-bg:#2d4353;--info-border:#4c6c83;--purple:#d4b9ee;--purple-bg:#423650;--purple-border:#685178;}
+  :root[data-theme='dark']{--on-a:#202738;--badge-danger:#aa4949;--badge-info:#376c9b;--badge-orange:#a45b39;--bg:#172536;--s:#1e2e42;--c:#25374a;--b:#3d5267;--ib:#1b2b3d;--a:#e2c76c;--ad:#413f2e;--t1:#f4f5f0;--t2:#c9d4df;--tm:#aabccd;--positive:#94d0bd;--positive-bg:#27413f;--positive-border:#466e67;--danger:#ffb1ad;--danger-bg:#4c333e;--danger-border:#845362;--orange:#ffbd97;--orange-bg:#4e3b38;--orange-border:#805a51;--warning:#f3d987;--warning-bg:#484234;--warning-border:#77694a;--info:#a9d0f3;--info-bg:#283e59;--info-border:#4a7090;--purple:#ddc3f1;--purple-bg:#3d3854;--purple-border:#655a82;}
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--t1);}
   input,select,textarea{color-scheme:light;transition:border-color .2s;}
