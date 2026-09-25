@@ -22,6 +22,8 @@ const supabase = createClient(
 );
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
+const EMAIL_FROM = Deno.env.get("EMAIL_FROM"); // Verified sender in Resend
+const EMAIL_REPLY_TO = "Jerichosams@gmail.com";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -88,7 +90,7 @@ function buildEmailHtml(
     </div>
     <div style="background:#0f1217;border:1px solid #1e2430;border-radius:12px;padding:28px;margin-bottom:20px;">
       <h2 style="color:#e8edf5;font-size:20px;margin:0 0 8px;">
-        ${isToday ? "🔔 Rep Visit TODAY" : "📅 Rep Visit TOMORROW"}
+        ${isToday ? "Rep Visit TODAY" : "Rep Visit TOMORROW"}
       </h2>
       <p style="color:#9ba8bb;font-size:14px;margin:0 0 20px;">
         <strong style="color:#e8edf5;">${supplierName}</strong> — ${repName} is due in ${isToday ? "today" : "tomorrow"}.
@@ -161,7 +163,7 @@ Deno.serve(async (_req) => {
       return new Response("No store settings found", { status: 400 });
     }
 
-    const { timezone, notif_time, store_email, store_name } = settings;
+    const { timezone, notif_time, store_email } = settings;
     const [notifHour] = notif_time.split(":").map(Number);
     const currentHour = getCurrentHourInTimezone(timezone);
     const todayDay = getCurrentDayInTimezone(timezone);
@@ -174,12 +176,18 @@ Deno.serve(async (_req) => {
       return new Response("Not notification hour yet", { status: 200 });
     }
 
+    if (!RESEND_API_KEY || !EMAIL_FROM || !store_email) {
+      console.error("Email configuration missing: RESEND_API_KEY, EMAIL_FROM or store_email");
+      return new Response("Email sender or recipient is not configured", { status: 503 });
+    }
+
     // Load all suppliers with open gaps
     const { data: suppliers } = await supabase
       .from("suppliers")
       .select("*");
 
     let emailsSent = 0;
+    let emailsFailed = 0;
 
     for (const supplier of suppliers || []) {
       const isToday = supplier.visit_day === todayDay;
@@ -215,7 +223,8 @@ Deno.serve(async (_req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "ShelfAlert <noreply@shelfalert.app>",
+          from: EMAIL_FROM,
+          reply_to: EMAIL_REPLY_TO,
           to: [store_email],
           subject,
           html,
@@ -229,6 +238,9 @@ Deno.serve(async (_req) => {
           type: isToday ? "urgent" : "warning",
           text: `${supplier.name} rep ${isToday ? "TODAY" : "TOMORROW"} — ${gaps.length} open gap${gaps.length === 1 ? "" : "s"}. Email sent to ${store_email}.`,
         });
+      } else {
+        emailsFailed++;
+        console.error("Resend rejected notification", emailRes.status, await emailRes.text());
       }
     }
 
@@ -236,8 +248,8 @@ Deno.serve(async (_req) => {
     await markMissedReminders(timezone);
 
     return new Response(
-      JSON.stringify({ ok: true, emailsSent }),
-      { headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ ok: emailsFailed === 0, emailsSent, emailsFailed }),
+      { status: emailsFailed ? 502 : 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error(err);
