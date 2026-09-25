@@ -10,7 +10,7 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - [x] Replace Syne, DM Sans and DM Mono with Atkinson Hyperlegible Next throughout the interface.
 - [x] Make Dashboard a task-first Today view: rep visits, near-code alerts and priority gaps first; Log gap and View all gaps actions; supporting statistics below.
 - [x] Group desktop navigation and simplify mobile navigation to Today, Issues, Suppliers, Reports, and More. Issues opens Gaps, Near Code and High Theft Items; More opens Settings.
-- [ ] Standardise list screens with search, filters, clear row actions, and consistent spacing.
+- [x] Standardise Gaps, Near Code, Suppliers and incident lists with search, existing filters, result counts, clearer empty states and mobile row actions.
 - [ ] Review layouts at phone, tablet, and desktop widths with authenticated data.
 
 ## Email notifications
@@ -29,3 +29,4 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - 2026-09-25: Jericho selected Atkinson Hyperlegible Next. Updated the interface font and reordered Today around store tasks, with the date and rep schedule using the store timezone. Next: navigation cleanup.
 - 2026-09-25: Grouped desktop navigation and replaced the seven-item mobile bar with five destinations and an Issues menu. Verified with `CI=true npm run build`. Next: list screen consistency.
 - 2026-09-25: Repository default branch is `master` (no `main` branch exists). At Jericho's request, the feature branch is being merged into that default branch so future changes can go directly to the production branch.
+- 2026-09-25: Merged PR #3 into `master`; Vercel reported the deployment successful. Added consistent search and result counts to the four operational lists, improved supplier edit/delete labels and phone layout for gap and near-code actions. `CI=true npm run build` passes. Next: review authenticated phone, tablet and desktop layouts.
