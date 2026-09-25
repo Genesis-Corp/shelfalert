@@ -7,8 +7,8 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - [x] Remove emoji from the application and alert email template.
 - [x] Start the light Stone and Forest palette: warm surfaces, dark text, forest green actions, and readable status colours.
 - [x] Refine the palette across signed-in screens and add an optional graphite dark theme in Settings. Theme choice is saved on this device.
-- [ ] Replace the technical display and monospace fonts with a practical, highly readable retail interface font after selecting a direction.
-- [ ] Make Dashboard a task-first Today view: rep visits and urgent items first, obvious Log gap action, supporting statistics below.
+- [x] Replace Syne, DM Sans and DM Mono with Atkinson Hyperlegible Next throughout the interface.
+- [x] Make Dashboard a task-first Today view: rep visits, near-code alerts and priority gaps first; Log gap and View all gaps actions; supporting statistics below.
 - [ ] Group desktop navigation and simplify mobile navigation to Today, Issues, Suppliers, Reports, and More.
 - [ ] Standardise list screens with search, filters, clear row actions, and consistent spacing.
 - [ ] Review layouts at phone, tablet, and desktop widths with authenticated data.
@@ -26,3 +26,4 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - 2026-09-25: Began the light palette and removed emoji in source and email. Production email sending remains unverified; no credentials or scheduler are stored in this repository.
 - 2026-09-25: Removed unused `DEPT_CODES` so warnings cannot turn into failures under `CI=true`. The initial changes were pushed to `codex/shelfalert-light-theme` on GitHub; Vercel deployment still needs verification.
 - 2026-09-25: Completed the palette refinement with theme-aware status colours and a Settings theme control. Font options to review next: Source Sans 3, Nunito Sans, and Atkinson Hyperlegible.
+- 2026-09-25: Jericho selected Atkinson Hyperlegible Next. Updated the interface font and reordered Today around store tasks, with the date and rep schedule using the store timezone. Next: navigation cleanup.
