@@ -234,6 +234,11 @@ const IS = { width: "100%", background: "var(--ib)", border: "1px solid var(--b)
 const BP = { background: "var(--a)", color: "var(--on-a)", border: "none", borderRadius: 8, padding: "10px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
 const BS = { background: "transparent", color: "var(--t2)", border: "1px solid var(--b)", borderRadius: 8, padding: "10px 20px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
 const BD = { background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-border)", borderRadius: 8, padding: "10px 20px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
+const matchesSearch = (query, ...values) => values.some(value => String(value || "").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+
+function ListSearch({ value, onChange, label, placeholder }) {
+  return <input className="list-search" type="search" aria-label={label} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} style={IS} />;
+}
 
 function Badge({ status, meta = STATUS_META }) {
   const m = meta[status] || STATUS_META.open;
@@ -494,28 +499,30 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
 function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
   const [filter, setFilter] = useState("all");
   const [supFilter, setSupFilter] = useState("all");
+  const [search, setSearch] = useState("");
   const [deletionOpen, setDeletionOpen] = useState(null);
   const [enlargedImage, setEnlargedImage] = useState(null);
-  const filtered = gaps.filter(g => (filter === "all" || g.status === filter) && (supFilter === "all" || g.supplierId === supFilter));
+  const filtered = gaps.filter(g => (filter === "all" || g.status === filter) && (supFilter === "all" || g.supplierId === supFilter) && matchesSearch(search, g.description, g.notes, g.aisle, suppliers.find(s => s.id === g.supplierId)?.name));
   const FILTERS = ["all","open","missed","ordered","unavailable","deletion_confirmed","deletion_followup"];
   return (
     <div>
+      <div className="list-toolbar"><ListSearch label="Search gaps" placeholder="Search products, suppliers or aisles" value={search} onChange={setSearch} /><button onClick={onAdd} style={{ ...BP, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}><Icon d={IC.plus} size={15} /> Log Gap</button></div>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {FILTERS.map(f => <button key={f} onClick={() => setFilter(f)} style={{ ...BS, padding: "6px 14px", fontSize: 12, borderColor: filter === f ? "var(--a)" : "var(--b)", color: filter === f ? "var(--a)" : "var(--tm)" }}>{f === "all" ? "All" : STATUS_META[f]?.label || f}</button>)}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <select value={supFilter} onChange={e => setSupFilter(e.target.value)} style={{ ...IS, width: "auto", fontSize: 12, padding: "6px 12px" }}><option value="all">All Suppliers</option>{suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
-          <button onClick={onAdd} style={{ ...BP, display: "flex", alignItems: "center", gap: 6 }}><Icon d={IC.plus} size={15} /> Log Gap</button>
         </div>
       </div>
-      {filtered.length === 0 && <div style={{ textAlign: "center", color: "var(--tm)", padding: 40, fontSize: 14 }}>No gaps match this filter.</div>}
+      <div className="list-count">{filtered.length} {filtered.length === 1 ? "gap" : "gaps"}</div>
+      {filtered.length === 0 && <div style={{ textAlign: "center", color: "var(--tm)", padding: 40, fontSize: 14 }}>{gaps.length ? "No gaps match your search or filters." : "No gaps logged yet. Use Log Gap to add one."}</div>}
       {filtered.map(g => {
         const sup = suppliers.find(s => s.id === g.supplierId);
         const isDeletionStatus = g.status === "deletion_confirmed" || g.status === "deletion_followup";
         return (
           <Card key={g.id} style={{ marginBottom: 10 }}>
-            <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+            <div className="list-row" style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
               {g.imageUrl && (
                 <img src={g.imageUrl} alt="" onClick={() => setEnlargedImage(g.imageUrl)}
                   style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0, cursor: "zoom-in" }} />
@@ -526,7 +533,7 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
                 {g.notes && <div style={{ fontSize: 12, color: "var(--t2)", background: "var(--ib)", borderRadius: 6, padding: "6px 10px" }}>"{g.notes}"</div>}
                 {g.unavailableUntil && <div style={{ fontSize: 11, color: "var(--warning)", marginTop: 4 }}>Expected back: {fmtDate(g.unavailableUntil)}</div>}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+              <div className="list-row-actions" style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
                 {!isDeletionStatus && g.status !== "ordered" && (
                   <button onClick={() => onResolve(g.id, "ordered")} style={{ ...BP, padding: "5px 12px", fontSize: 12 }}>Ordered</button>
                 )}
@@ -565,21 +572,23 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
 // ─── CLOSE TO CODE VIEW ───────────────────────────────────────────────────────
 function CloseToCodeView({ items, suppliers, onAdd, onUpdateStatus, onDelete }) {
   const [filter, setFilter] = useState("active");
-  const sorted = [...items.filter(i => filter === "all" || i.status === filter)].sort((a, b) => new Date(a.useByDate) - new Date(b.useByDate));
+  const [search, setSearch] = useState("");
+  const sorted = [...items.filter(i => (filter === "all" || i.status === filter) && matchesSearch(search, i.description, i.aisle, i.notes, suppliers.find(s => s.id === i.supplierId)?.name))].sort((a, b) => new Date(a.useByDate) - new Date(b.useByDate));
   return (
     <div>
+      <div className="list-toolbar"><ListSearch label="Search near-code items" placeholder="Search products, suppliers or aisles" value={search} onChange={setSearch} /><button onClick={onAdd} style={{ ...BP, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}><Icon d={IC.plus} size={15} /> Add Item</button></div>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {["active","all","marked_down","returned","removed"].map(f => <button key={f} onClick={() => setFilter(f)} style={{ ...BS, padding: "6px 14px", fontSize: 12, borderColor: filter === f ? "var(--a)" : "var(--b)", color: filter === f ? "var(--a)" : "var(--tm)" }}>{f === "all" ? "All" : CODE_STATUS_META[f]?.label || f}</button>)}
         </div>
-        <button onClick={onAdd} style={{ ...BP, display: "flex", alignItems: "center", gap: 6 }}><Icon d={IC.plus} size={15} /> Add Item</button>
       </div>
-      {sorted.length === 0 && <div style={{ textAlign: "center", color: "var(--tm)", padding: 40, fontSize: 14 }}>No items in this category.</div>}
+      <div className="list-count">{sorted.length} {sorted.length === 1 ? "item" : "items"}</div>
+      {sorted.length === 0 && <div style={{ textAlign: "center", color: "var(--tm)", padding: 40, fontSize: 14 }}>{items.length ? "No items match your search or filters." : "No near-code items yet. Use Add Item to start."}</div>}
       {sorted.map(item => {
         const alert = getCodeAlert(item.useByDate); const days = daysUntil(item.useByDate); const sup = suppliers.find(s => s.id === item.supplierId);
         return (
           <Card key={item.id} style={{ marginBottom: 10, borderColor: alert ? alert.border : "var(--b)" }}>
-            <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+            <div className="list-row" style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 {alert && item.status === "active" && <div style={{ background: alert.bg, border: `1px solid ${alert.border}`, borderRadius: 8, padding: "6px 12px", marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon d={IC.bell} size={14} color={alert.color} /><span style={{ fontSize: 12, color: alert.color, fontWeight: 700 }}>{alert.label}</span></div>}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}><span style={{ fontWeight: 700, fontSize: 15, color: "var(--t1)" }}>{item.description}</span><Badge status={item.status} meta={CODE_STATUS_META} /></div>
@@ -592,7 +601,7 @@ function CloseToCodeView({ items, suppliers, onAdd, onUpdateStatus, onDelete }) 
                 </div>
                 {item.notes && <div style={{ fontSize: 12, color: "var(--t2)", background: "var(--ib)", borderRadius: 6, padding: "6px 10px" }}>"{item.notes}"</div>}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+              <div className="list-row-actions" style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
                 {item.status === "active" && <><button onClick={() => onUpdateStatus(item.id, "marked_down")} style={{ ...BS, padding: "5px 12px", fontSize: 11, whiteSpace: "nowrap" }}>Mark Down</button><button onClick={() => onUpdateStatus(item.id, "returned")} style={{ ...BS, padding: "5px 12px", fontSize: 11 }}>Returned</button><button onClick={() => onUpdateStatus(item.id, "removed")} style={{ background: "var(--orange-bg)", color: "var(--orange)", border: "1px solid var(--orange-border)", borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontFamily: "var(--fb)" }}>Remove</button></>}
                 <button onClick={() => onDelete(item.id)} style={{ ...BD, padding: "5px 12px", fontSize: 11 }}>Delete</button>
               </div>
@@ -672,20 +681,24 @@ function CreditSection({ type, credits, supplierId, onAdd, onUpdateStatus, onDel
 // ─── SUPPLIERS VIEW ───────────────────────────────────────────────────────────
 function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAddCredit, onUpdateCreditStatus, onDeleteCredit }) {
   const [expanded, setExpanded] = useState(null);
+  const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState({});
   const toggle = (id) => setExpanded(e => e === id ? null : id);
   const getTab = (id) => activeTab[id] || "details";
   const setTab = (id, tab) => setActiveTab(t => ({ ...t, [id]: tab }));
   const today = new Intl.DateTimeFormat("en-AU", { weekday: "long" }).format(new Date());
   const tmrw  = new Intl.DateTimeFormat("en-AU", { weekday: "long" }).format(new Date(Date.now() + 86400000));
+  const visibleSuppliers = suppliers.filter(s => matchesSearch(search, s.name, s.contact, s.phone, s.visitDay));
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
+      <div className="list-toolbar">
+        <ListSearch label="Search suppliers" placeholder="Search suppliers or reps" value={search} onChange={setSearch} />
         <button onClick={onAdd} style={{ ...BP, display: "flex", alignItems: "center", gap: 6 }}><Icon d={IC.plus} size={15} /> Add Supplier</button>
       </div>
-      {suppliers.length === 0 && <div style={{ color: "var(--tm)", fontSize: 14, padding: 20 }}>No suppliers yet. Add your first rep above.</div>}
-      {suppliers.map(s => {
+      <div className="list-count">{visibleSuppliers.length} {visibleSuppliers.length === 1 ? "supplier" : "suppliers"}</div>
+      {visibleSuppliers.length === 0 && <div style={{ color: "var(--tm)", fontSize: 14, padding: 20 }}>{suppliers.length ? "No suppliers match your search." : "No suppliers yet. Add your first rep above."}</div>}
+      {visibleSuppliers.map(s => {
         const isOpen = expanded === s.id;
         const tab = getTab(s.id);
         const og = gaps.filter(g => g.supplierId === s.id && g.status !== "ordered").length;
@@ -695,7 +708,7 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
 
         return (
           <div key={s.id} style={{ marginBottom: 10 }}>
-            <div onClick={() => toggle(s.id)} style={{ background: "var(--c)", border: `1px solid ${isOpen ? "var(--a)" : "var(--b)"}`, borderRadius: isOpen ? "12px 12px 0 0" : 12, padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, transition: "border-color .2s" }}>
+            <div role="button" tabIndex={0} aria-expanded={isOpen} aria-label={`${s.name} supplier details`} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(s.id); } }} onClick={() => toggle(s.id)} style={{ background: "var(--c)", border: `1px solid ${isOpen ? "var(--a)" : "var(--b)"}`, borderRadius: isOpen ? "12px 12px 0 0" : 12, padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, transition: "border-color .2s" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontWeight: 700, fontSize: 16, color: "var(--t1)" }}>{s.name}</span>
@@ -721,8 +734,8 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
                   ))}
                   <div style={{ flex: 1 }} />
                   <div style={{ display: "flex", gap: 6, alignItems: "center", padding: "8px 0" }}>
-                    <button onClick={(e) => { e.stopPropagation(); onEdit(s); }} style={{ ...BS, padding: "4px 10px" }}><Icon d={IC.edit} size={13} /></button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(s.id); }} style={{ ...BD, padding: "4px 10px" }}><Icon d={IC.trash} size={13} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); onEdit(s); }} aria-label={`Edit ${s.name}`} style={{ ...BS, padding: "5px 10px" }}><Icon d={IC.edit} size={13} /> Edit</button>
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(s.id); }} aria-label={`Delete ${s.name}`} style={{ ...BD, padding: "5px 10px" }}><Icon d={IC.trash} size={13} /> Delete</button>
                   </div>
                 </div>
 
@@ -1477,10 +1490,11 @@ function TheftIncidentForm({ items, locations, numAisles, numBays, depts, sessio
 
 function TheftIncidentsList({ incidents, itemMap, locMap, itemResolvedMap, items, locations,
   statusFilter, setStatusFilter, itemFilter, setItemFilter,
-  locationFilter, setLocationFilter, onDelete }) {
+  locationFilter, setLocationFilter, search, setSearch, onDelete }) {
   const fmtShelf = (aisle, bay) => aisle ? (bay ? `${aisle} · Bay ${bay}` : aisle) : "";
   return (
     <div>
+      <div className="list-toolbar"><ListSearch label="Search incidents" placeholder="Search items, locations or notes" value={search} onChange={setSearch} /></div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
         {["all","active","resolved"].map(f => (
           <button key={f} onClick={() => setStatusFilter(f)} style={{ ...BS, padding: "5px 14px", fontSize: 12, borderColor: statusFilter === f ? "var(--a)" : "var(--b)", color: statusFilter === f ? "var(--a)" : "var(--tm)" }}>
@@ -1516,6 +1530,7 @@ function TheftIncidentsList({ incidents, itemMap, locMap, itemResolvedMap, items
         </button>
       </div>
 
+      <div className="list-count">{incidents.length} {incidents.length === 1 ? "incident" : "incidents"}</div>
       {incidents.length === 0 && (
         <div style={{ color: "var(--tm)", fontSize: 13, padding: "32px 0", textAlign: "center" }}>No incidents match the current filters.</div>
       )}
@@ -1561,6 +1576,7 @@ function HighTheftView({ incidents, items, locations, numAisles, numBays, depts,
   const [statusFilter, setStatusFilter] = useState("all");
   const [itemFilter, setItemFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [search, setSearch] = useState("");
 
   const now = new Date();
   const weekStart = (() => { const d = new Date(now); d.setHours(0,0,0,0); d.setDate(d.getDate() - d.getDay()); return d; })();
@@ -1585,6 +1601,7 @@ function HighTheftView({ incidents, items, locations, numAisles, numBays, depts,
     if (statusFilter === "resolved" && !itemResolvedMap[inc.itemId]) return false;
     if (itemFilter     && inc.itemId    !== itemFilter)     return false;
     if (locationFilter && inc.foundAtId !== locationFilter) return false;
+    if (!matchesSearch(search, itemMap[inc.itemId], locMap[inc.foundAtId], inc.notes, inc.shelfAisle)) return false;
     return true;
   });
 
@@ -1619,7 +1636,7 @@ function HighTheftView({ incidents, items, locations, numAisles, numBays, depts,
         ))}
       </div>
 
-      {tab === "incidents" && <TheftIncidentsList incidents={filtered} itemMap={itemMap} locMap={locMap} itemResolvedMap={itemResolvedMap} items={items} locations={locations} statusFilter={statusFilter} setStatusFilter={setStatusFilter} itemFilter={itemFilter} setItemFilter={setItemFilter} locationFilter={locationFilter} setLocationFilter={setLocationFilter} onDelete={onDeleteIncident} />}
+      {tab === "incidents" && <TheftIncidentsList incidents={filtered} itemMap={itemMap} locMap={locMap} itemResolvedMap={itemResolvedMap} items={items} locations={locations} statusFilter={statusFilter} setStatusFilter={setStatusFilter} itemFilter={itemFilter} setItemFilter={setItemFilter} locationFilter={locationFilter} setLocationFilter={setLocationFilter} search={search} setSearch={setSearch} onDelete={onDeleteIncident} />}
       {tab === "charts"    && <TheftChartsTab incidents={incidents} metric={metric} setMetric={setMetric} monthTab={monthTab} setMonthTab={setMonthTab} />}
       {tab === "items"     && <TheftItemsTab itemStats={itemStats} locations={locations} locReportCounts={locReportCounts} onToggleResolved={onToggleResolved} onAddItem={onAddItem} onAddLocation={onAddLocation} onDeleteLocation={onDeleteLocation} />}
       <TheftPrintReport incidents={filtered} items={items} locations={locations} />
@@ -2038,6 +2055,9 @@ const CSS = `
   input,select,textarea{color-scheme:light;transition:border-color .2s;}
   :root[data-theme='dark'] input,:root[data-theme='dark'] select,:root[data-theme='dark'] textarea{color-scheme:dark;}
   input:focus,select:focus,textarea:focus{border-color:var(--a)!important;outline:none;}
+  .list-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .list-search{flex:1;min-width:0;max-width:420px;}
+  .list-count{color:var(--tm);font-size:12px;margin:0 0 10px;}
   ::-webkit-scrollbar{width:6px;height:6px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--b);border-radius:3px;}
   @keyframes spin{to{transform:rotate(360deg);}}
   .mobile-header{display:none;}.mobile-nav{display:none;}
@@ -2054,6 +2074,11 @@ const CSS = `
     #theft-print-report .print-stat { display: inline-block; border: 1px solid #ccc; border-radius: 6px; padding: 8px 16px; margin-right: 12px; margin-bottom: 12px; }
   }
   @media(max-width:680px){
+    .list-toolbar{align-items:stretch;flex-wrap:wrap;}
+    .list-search{max-width:none;flex-basis:100%;}
+    .list-row{flex-wrap:wrap;}
+    .list-row-actions{width:100%;flex-direction:row!important;flex-wrap:wrap;justify-content:flex-start;}
+    .list-row-actions button{min-height:36px;}
     aside{display:none!important;}
     main{margin-left:0!important;max-width:100vw!important;padding:70px 14px 90px!important;}
     .mobile-header{display:flex!important;position:fixed;top:0;left:0;right:0;height:56px;background:var(--s);border-bottom:1px solid var(--b);padding:0 16px;align-items:center;justify-content:space-between;z-index:200;}
