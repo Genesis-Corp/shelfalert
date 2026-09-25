@@ -3,6 +3,7 @@
 
 # production
 /build
+/public/ocr
 
 # environment
 .env

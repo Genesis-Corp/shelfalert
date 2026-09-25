@@ -12,6 +12,9 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - [x] Group desktop navigation and simplify mobile navigation to Today, Issues, Suppliers, Reports, and More. Issues opens Gaps, Near Code and High Theft Items; More opens Settings.
 - [x] Standardise Gaps, Near Code, Suppliers and incident lists with search, existing filters, result counts, clearer empty states and mobile row actions.
 - [ ] Review layouts at phone, tablet, and desktop widths with authenticated data.
+- [x] Show uploaded gap photos as thumbnails on Today, with a larger preview on selection.
+- [x] Replace browser image-description API call with on-device OCR in Log New Gap. Suggest product text and fill supplier/aisle/bay only if clearly printed; keep every field editable. Bundle OCR assets with the site.
+- [ ] Replace the Graphite & Forest dark palette once Jericho chooses a direction. Options proposed: Slate & Coral, Navy & Citrus, or Charcoal & Sky.
 
 ## Email notifications
 
@@ -30,3 +33,4 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - 2026-09-25: Grouped desktop navigation and replaced the seven-item mobile bar with five destinations and an Issues menu. Verified with `CI=true npm run build`. Next: list screen consistency.
 - 2026-09-25: Repository default branch is `master` (no `main` branch exists). At Jericho's request, the feature branch is being merged into that default branch so future changes can go directly to the production branch.
 - 2026-09-25: Merged PR #3 into `master`; Vercel reported the deployment successful. Added consistent search and result counts to the four operational lists, improved supplier edit/delete labels and phone layout for gap and near-code actions. `CI=true npm run build` passes. Next: review authenticated phone, tablet and desktop layouts.
+- 2026-09-25: Added Today photo previews and local OCR using Tesseract.js. OCR reads printed text and suggests form fields; it cannot infer a product from an unlabelled empty shelf. The OCR engine and English model are copied into the build so images are not sent to an OCR service. The original photo is still uploaded to Supabase when the gap is saved. Parser tests and production build pass. Awaiting dark palette choice.

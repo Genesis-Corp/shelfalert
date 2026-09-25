@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { getWeeklyData, getMonthlyWeeklyTotals, getMonthlyDayBreakdown, generateTheftCSV } from "./theftUtils";
+import { productTextFromOcr } from "./ocrUtils";
 
 // ─── SUPABASE CLIENT (official library — handles auth/refresh automatically) ──
 const supabase = createClient(
@@ -184,22 +185,6 @@ const downloadTheftCSV = (content, filename) => {
   URL.revokeObjectURL(url);
 };
 
-// ─── AI DESCRIPTION ───────────────────────────────────────────────────────────
-async function aiDescribe(base64) {
-  try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 200,
-        messages: [{ role: "user", content: [
-          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } },
-          { type: "text", text: "Describe the missing supermarket shelf product concisely: name, size/weight, brand if visible. Under 15 words. Only the description." }
-        ]}]
-      }),
-    });
-    const d = await r.json(); return d.content?.[0]?.text || "";
-  } catch { return ""; }
-}
-
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const Icon = ({ d, size = 18, color = "currentColor", sw = 1.8 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
@@ -367,6 +352,7 @@ function LoginScreen({ onLogin }) {
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onDismissNotif, onLogGap, onViewGaps, timezone }) {
+  const [previewImage, setPreviewImage] = useState(null);
   const today = new Intl.DateTimeFormat("en-AU", { weekday: "long", timeZone: timezone }).format(new Date());
   const tmrw  = new Intl.DateTimeFormat("en-AU", { weekday: "long", timeZone: timezone }).format(new Date(Date.now() + 86400000));
   const open = gaps.filter(g => g.status !== "ordered");
@@ -438,7 +424,8 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
           {priorityGaps.slice(0, 5).map(g => (
             <Card key={g.id} style={{ marginBottom: 8, borderColor: "var(--danger-border)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-                <div><strong style={{ color: "var(--t1)" }}>{g.description}</strong><div style={{ color: "var(--t2)", fontSize: 12, marginTop: 3 }}>{suppliers.find(s => s.id === g.supplierId)?.name || "Unknown supplier"} · {fmtLocation(g.aisle, g.bay)}</div></div>
+                {g.imageUrl && <button type="button" onClick={() => setPreviewImage({ url: g.imageUrl, description: g.description })} aria-label={`View photo for ${g.description}`} style={{ padding: 0, border: 0, background: "none", cursor: "zoom-in" }}><img src={g.imageUrl} alt="" style={{ width: 60, height: 60, borderRadius: 8, objectFit: "cover" }} /></button>}
+                <div style={{ flex: 1, minWidth: 150 }}><strong style={{ color: "var(--t1)" }}>{g.description}</strong><div style={{ color: "var(--t2)", fontSize: 12, marginTop: 3 }}>{suppliers.find(s => s.id === g.supplierId)?.name || "Unknown supplier"} · {fmtLocation(g.aisle, g.bay)}</div></div>
                 <Badge status={g.status} />
               </div>
             </Card>
@@ -470,6 +457,7 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
         return (
           <Card key={g.id} style={{ marginBottom: 8 }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              {g.imageUrl && <button type="button" onClick={() => setPreviewImage({ url: g.imageUrl, description: g.description })} aria-label={`View photo for ${g.description}`} style={{ padding: 0, border: 0, background: "none", cursor: "zoom-in", flexShrink: 0 }}><img src={g.imageUrl} alt="" style={{ width: 60, height: 60, borderRadius: 8, objectFit: "cover" }} /></button>}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}><Dot priority={g.priority} /><span style={{ fontWeight: 600, fontSize: 14, color: "var(--t1)" }}>{g.description}</span></div>
                 <div style={{ fontSize: 12, color: "var(--tm)" }}>{sup?.name} · {fmtLocation(g.aisle, g.bay)} · {g.loggedBy}</div>
@@ -490,6 +478,10 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
           <Card key={l}><div style={{ fontSize: small ? 20 : 32, fontWeight: 800, color: c, fontFamily: "var(--fd)", lineHeight: 1 }}>{v}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 4, textTransform: "uppercase", letterSpacing: 1, fontFamily: "var(--fm)" }}>{l}</div></Card>
         ))}
       </div>
+
+      {previewImage && <Modal title={previewImage.description} onClose={() => setPreviewImage(null)} width={680}>
+        <img src={previewImage.url} alt={`Gap: ${previewImage.description}`} style={{ width: "100%", maxHeight: "70vh", objectFit: "contain", borderRadius: 8 }} />
+      </Modal>}
 
     </div>
   );
@@ -905,14 +897,59 @@ function SettingsView({ settings, depts, onSave, saving, onAddDept, onUpdateDept
 
 // ─── FORMS ────────────────────────────────────────────────────────────────────
 function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose }) {
-  const [f, setF] = useState({ description: "", supplierId: suppliers[0]?.id || "", aisle: "", bay: "", priority: "normal", notes: "", imageFile: null, imagePreview: null });
-  const [aiLoading, setAiLoading] = useState(false); const [aiDone, setAiDone] = useState(false); const [saving, setSaving] = useState(false);
-  const ref = useRef(); const s = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const [f, setF] = useState({ description: "", supplierId: "", aisle: "", bay: "", priority: "normal", notes: "", imageFile: null, imagePreview: null });
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrMessage, setOcrMessage] = useState("");
+  const [ocrText, setOcrText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const cameraRef = useRef(); const uploadRef = useRef(); const scanId = useRef(0);
+  const s = (k, v) => setF(p => ({ ...p, [k]: v }));
+  useEffect(() => () => { scanId.current++; }, []);
   const handlePhoto = async (e) => {
-    const file = e.target.files?.[0]; if (!file) return; s("imageFile", file);
+    const file = e.target.files?.[0]; if (!file) return;
+    e.target.value = "";
+    const currentScan = ++scanId.current;
+    setF(prev => ({ ...prev, imageFile: file }));
+    setOcrText(""); setOcrMessage("Reading printed text on this device…"); setOcrLoading(true);
     const reader = new FileReader();
-    reader.onload = async ev => { s("imagePreview", ev.target.result); setAiLoading(true); const desc = await aiDescribe(ev.target.result.split(",")[1]); if (desc) { s("description", desc); setAiDone(true); } setAiLoading(false); };
+    reader.onload = ev => { if (scanId.current === currentScan) s("imagePreview", ev.target.result); };
     reader.readAsDataURL(file);
+    let worker;
+    try {
+      const { createWorker } = await import("tesseract.js");
+      const assetRoot = `${process.env.PUBLIC_URL || ""}/ocr`;
+      worker = await createWorker("eng", 1, {
+        workerPath: `${assetRoot}/worker.min.js`,
+        workerBlobURL: false,
+        corePath: `${assetRoot}/core`,
+        langPath: `${assetRoot}/lang`,
+      });
+      const { data } = await worker.recognize(file);
+      if (scanId.current !== currentScan) return;
+      const text = data.text.trim();
+      setOcrText(text);
+      const suggestion = productTextFromOcr(text);
+      const supplierMatches = suppliers.filter(sup => sup.name.length >= 4 && text.toLocaleLowerCase().includes(sup.name.toLocaleLowerCase()));
+      const location = text.match(/\baisle\s*([a-z0-9]{1,3})(?:\W+bay\s*(\d{1,3}))?/i);
+      const aisle = location?.[1]?.toUpperCase();
+      const validAisle = aisle && (/^\d+$/.test(aisle) ? +aisle >= 1 && +aisle <= numAisles : depts.some(dept => dept.code === aisle));
+      const validBay = location?.[2] && +location[2] >= 1 && +location[2] <= numBays;
+      setF(prev => ({ ...prev,
+        description: prev.description.trim() ? prev.description : suggestion,
+        supplierId: prev.supplierId || (supplierMatches.length === 1 ? supplierMatches[0].id : ""),
+        aisle: prev.aisle || (validAisle ? aisle : ""),
+        bay: prev.bay || (validAisle && validBay ? String(+location[2]) : ""),
+      }));
+      if (suggestion) {
+        setOcrMessage("Product text found. Check the description before saving.");
+      } else setOcrMessage("No readable product text found. Enter the description manually.");
+    } catch (error) {
+      console.error("On-device text recognition failed:", error);
+      if (scanId.current === currentScan) setOcrMessage("Text reading was unavailable. You can still enter the details manually.");
+    } finally {
+      if (worker) try { await worker.terminate(); } catch (error) { console.error("OCR cleanup failed:", error); }
+      if (scanId.current === currentScan) setOcrLoading(false);
+    }
   };
   const save = async () => {
     if (!f.description || !f.supplierId) return; setSaving(true);
@@ -922,13 +959,16 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
   const canSave = f.description.trim().length > 0 && f.supplierId;
   return (
     <Modal title="Log New Gap" onClose={onClose} width={560}>
-      <Field label="Photo — AI will describe the product">
+      <Field label="Product or shelf-label photo" hint="Printed text is read on your device. Check the suggestion; photos without readable text need a manual description.">
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <button onClick={() => ref.current.click()} style={{ ...BS, display: "flex", alignItems: "center", gap: 6 }}><Icon d={IC.cam} size={14} /> {aiLoading ? "Analysing…" : "Take / Upload Photo"}</button>
-          {aiDone && <span style={{ fontSize: 12, color: "var(--positive)" }}>AI generated</span>}
-          <input ref={ref} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handlePhoto} />
+          <button type="button" onClick={() => cameraRef.current.click()} style={{ ...BS, display: "flex", alignItems: "center", gap: 6 }}><Icon d={IC.cam} size={14} /> Take photo</button>
+          <button type="button" onClick={() => uploadRef.current.click()} style={BS}>Upload image</button>
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handlePhoto} />
+          <input ref={uploadRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhoto} />
         </div>
-        {f.imagePreview && <img src={f.imagePreview} alt="" style={{ marginTop: 10, width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 8 }} />}
+        {f.imagePreview && <img src={f.imagePreview} alt="Selected product or shelf label" style={{ marginTop: 10, width: "100%", maxHeight: 160, objectFit: "contain", background: "var(--ib)", borderRadius: 8 }} />}
+        {ocrMessage && <div role="status" style={{ fontSize: 12, color: ocrLoading ? "var(--t2)" : "var(--positive)", marginTop: 8 }}>{ocrMessage}</div>}
+        {ocrText && <details style={{ marginTop: 8, color: "var(--t2)", fontSize: 12 }}><summary>Show recognised text</summary><div style={{ whiteSpace: "pre-wrap", marginTop: 6, padding: 8, background: "var(--ib)", borderRadius: 6 }}>{ocrText}</div></details>}
       </Field>
       <Field label="Product Description"><input style={IS} placeholder="e.g. Birds Eye Chicken Nuggets 400g" value={f.description} onChange={e => s("description", e.target.value)} /></Field>
       <Field label="Supplier">
