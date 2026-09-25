@@ -104,40 +104,40 @@ const fmtLocation = (aisle, bay, depts = []) => {
 
 const CREDIT_TYPES = ["damaged", "out_of_code", "non_scan"];
 const CREDIT_TYPE_META = {
-  damaged:     { label: "Damaged",     color: "#f87171", bg: "#fbeceb", border: "#e8b7b4", icon: "D" },
-  out_of_code: { label: "Out of Code", color: "#956100", bg: "#fff4d9", border: "#e6d09a", icon: "C" },
-  non_scan:    { label: "Non-Scan",    color: "#70549a", bg: "#f2ebf9", border: "#d8c6eb", icon: "N" },
+  damaged:     { label: "Damaged",     color: "var(--danger)", bg: "var(--danger-bg)", border: "var(--danger-border)", icon: "D" },
+  out_of_code: { label: "Out of Code", color: "var(--warning)", bg: "var(--warning-bg)", border: "var(--warning-border)", icon: "C" },
+  non_scan:    { label: "Non-Scan",    color: "var(--purple)", bg: "var(--purple-bg)", border: "var(--purple-border)", icon: "N" },
 };
 const CREDIT_STATUS_META = {
-  pending:   { label: "Pending",   bg: "#eaf2f9", text: "#28689a", border: "#b8d4e8" },
-  confirmed: { label: "Confirmed", bg: "#fff4d9", text: "#956100", border: "#e6d09a" },
-  received:  { label: "Received",  bg: "#e7f2eb", text: "#28745b", border: "#b7dbc6" },
-  disputed:  { label: "Disputed",  bg: "#fbeceb", text: "#b23b38", border: "#e8b7b4" },
-  resolved:  { label: "Resolved",  bg: "#f3f6f2", text: "#526159", border: "#dce3dc" },
+  pending:   { label: "Pending",   bg: "var(--info-bg)", text: "var(--info)", border: "var(--info-border)" },
+  confirmed: { label: "Confirmed", bg: "var(--warning-bg)", text: "var(--warning)", border: "var(--warning-border)" },
+  received:  { label: "Received",  bg: "var(--positive-bg)", text: "var(--positive)", border: "var(--positive-border)" },
+  disputed:  { label: "Disputed",  bg: "var(--danger-bg)", text: "var(--danger)", border: "var(--danger-border)" },
+  resolved:  { label: "Resolved",  bg: "var(--ib)", text: "var(--t2)", border: "var(--b)" },
 };
 const STATUS_META = {
-  missed:              { label: "Missed",       bg: "#fbeceb", text: "#b23b38", border: "#e8b7b4" },
-  ordered:             { label: "Ordered",      bg: "#e7f2eb", text: "#28745b", border: "#b7dbc6" },
-  unavailable:         { label: "Unavailable",  bg: "#fff4d9", text: "#956100", border: "#e6d09a" },
-  open:                { label: "Open",         bg: "#eaf2f9", text: "#28689a", border: "#b8d4e8" },
-  deletion_confirmed:  { label: "Deletion",  bg: "#f2ebf9", text: "#70549a", border: "#d8c6eb" },
-  deletion_followup:   { label: "Follow Up",   bg: "#fff0e4", text: "#b45716", border: "#e9c2a2" },
+  missed:              { label: "Missed",       bg: "var(--danger-bg)", text: "var(--danger)", border: "var(--danger-border)" },
+  ordered:             { label: "Ordered",      bg: "var(--positive-bg)", text: "var(--positive)", border: "var(--positive-border)" },
+  unavailable:         { label: "Unavailable",  bg: "var(--warning-bg)", text: "var(--warning)", border: "var(--warning-border)" },
+  open:                { label: "Open",         bg: "var(--info-bg)", text: "var(--info)", border: "var(--info-border)" },
+  deletion_confirmed:  { label: "Deletion",  bg: "var(--purple-bg)", text: "var(--purple)", border: "var(--purple-border)" },
+  deletion_followup:   { label: "Follow Up",   bg: "var(--orange-bg)", text: "var(--orange)", border: "var(--orange-border)" },
 };
 const CODE_STATUS_META = {
-  active:      { label: "Active",      bg: "#eaf2f9", text: "#28689a", border: "#b8d4e8" },
-  marked_down: { label: "Marked Down", bg: "#fff4d9", text: "#956100", border: "#e6d09a" },
-  returned:    { label: "Returned",    bg: "#e7f2eb", text: "#28745b", border: "#b7dbc6" },
-  removed:     { label: "Removed",     bg: "#f3f6f2", text: "#526159", border: "#dce3dc" },
+  active:      { label: "Active",      bg: "var(--info-bg)", text: "var(--info)", border: "var(--info-border)" },
+  marked_down: { label: "Marked Down", bg: "var(--warning-bg)", text: "var(--warning)", border: "var(--warning-border)" },
+  returned:    { label: "Returned",    bg: "var(--positive-bg)", text: "var(--positive)", border: "var(--positive-border)" },
+  removed:     { label: "Removed",     bg: "var(--ib)", text: "var(--t2)", border: "var(--b)" },
 };
 
 const getCodeAlert = (useByDate) => {
   if (!useByDate) return null;
   const days = Math.ceil((new Date(useByDate) - new Date()) / 86400000);
-  if (days < 0)    return { label: "EXPIRED — Remove now",       color: "#ff3030", bg: "#3d0000", border: "#7a0000" };
-  if (days === 0)  return { label: "Remove from shelf TODAY",     color: "#ff3030", bg: "#3d0000", border: "#7a0000" };
-  if (days <= 2)   return { label: "Clearance — 2 days left",    color: "#b23b38", bg: "#fbeceb", border: "#e8b7b4" };
-  if (days <= 7)   return { label: "Urgent action — 1 week left",color: "#b45716", bg: "#fff0e4", border: "#e9c2a2" };
-  if (days <= 14)  return { label: "Action required — 2 weeks",  color: "#956100", bg: "#fff4d9", border: "#e6d09a" };
+  if (days < 0)    return { label: "EXPIRED — Remove now",       color: "var(--danger)", bg: "var(--danger-bg)", border: "var(--danger-border)" };
+  if (days === 0)  return { label: "Remove from shelf TODAY",     color: "var(--danger)", bg: "var(--danger-bg)", border: "var(--danger-border)" };
+  if (days <= 2)   return { label: "Clearance — 2 days left",    color: "var(--danger)", bg: "var(--danger-bg)", border: "var(--danger-border)" };
+  if (days <= 7)   return { label: "Urgent action — 1 week left",color: "var(--orange)", bg: "var(--orange-bg)", border: "var(--orange-border)" };
+  if (days <= 14)  return { label: "Action required — 2 weeks",  color: "var(--warning)", bg: "var(--warning-bg)", border: "var(--warning-border)" };
   return null;
 };
 const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
@@ -231,16 +231,16 @@ const IC = {
 
 // ─── SHARED UI ────────────────────────────────────────────────────────────────
 const IS = { width: "100%", background: "var(--ib)", border: "1px solid var(--b)", borderRadius: 8, padding: "10px 12px", color: "var(--t1)", fontSize: 14, fontFamily: "var(--fb)", outline: "none", boxSizing: "border-box" };
-const BP = { background: "var(--a)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
+const BP = { background: "var(--a)", color: "var(--on-a)", border: "none", borderRadius: 8, padding: "10px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
 const BS = { background: "transparent", color: "var(--t2)", border: "1px solid var(--b)", borderRadius: 8, padding: "10px 20px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
-const BD = { background: "#fbeceb", color: "#b23b38", border: "1px solid #e8b7b4", borderRadius: 8, padding: "10px 20px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
+const BD = { background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-border)", borderRadius: 8, padding: "10px 20px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
 
 function Badge({ status, meta = STATUS_META }) {
   const m = meta[status] || STATUS_META.open;
   return <span style={{ background: m.bg, color: m.text, border: `1px solid ${m.border}`, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>{m.label}</span>;
 }
 function Dot({ priority }) {
-  return <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: priority === "high" ? "#b23b38" : "#4b5563", marginRight: 6, flexShrink: 0, boxShadow: priority === "high" ? "0 0 6px #b23b38" : "none" }} />;
+  return <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: priority === "high" ? "var(--danger)" : "var(--t2)", marginRight: 6, flexShrink: 0, boxShadow: priority === "high" ? "0 0 6px var(--danger)" : "none" }} />;
 }
 function Card({ children, style = {}, onClick }) {
   return (
@@ -277,7 +277,7 @@ function Spin() { return <div style={{ width: 18, height: 18, border: "2px solid
 function Toast({ msg, type = "success", onDone }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t); }, []);
-  const c = { success: "var(--a)", error: "#b23b38", info: "#28689a" }[type] || "var(--a)";
+  const c = { success: "var(--a)", error: "var(--danger)", info: "var(--info)" }[type] || "var(--a)";
   return <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "var(--s)", border: `1px solid ${c}`, borderRadius: 10, padding: "12px 20px", color: c, fontSize: 13, fontWeight: 600, zIndex: 2000, boxShadow: "0 8px 32px rgba(0,0,0,.6)", whiteSpace: "nowrap" }}>{msg}</div>;
 }
 
@@ -347,7 +347,7 @@ function LoginScreen({ onLogin }) {
               <button onClick={() => setShowPass(v => !v)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--tm)", padding: 0 }}><Icon d={showPass ? IC.eyeOff : IC.eye} size={15} /></button>
             </div>
           </Field>
-          {err && <div style={{ fontSize: 12, color: err.includes("created") ? "#28745b" : "#b23b38", marginBottom: 12, padding: "8px 12px", background: err.includes("created") ? "#e7f2eb" : "#fbeceb", borderRadius: 6 }}>{err}</div>}
+          {err && <div style={{ fontSize: 12, color: err.includes("created") ? "var(--positive)" : "var(--danger)", marginBottom: 12, padding: "8px 12px", background: err.includes("created") ? "var(--positive-bg)" : "var(--danger-bg)", borderRadius: 6 }}>{err}</div>}
           <button onClick={submit} disabled={loading} style={{ ...BP, width: "100%", padding: 14, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             {loading ? <Spin /> : (mode === "signup" ? "Create Account" : "Sign In")}
           </button>
@@ -373,7 +373,7 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 24 }}>
-        {[["Open Gaps", open.length, "#28689a", false], ["Near Code", urgentCode.length, "#b45716", false], ["Credits", fmt$(pendingTotal), "#28745b", true], ["Suppliers", suppliers.length, "#70549a", false]].map(([l,v,c,small]) => (
+        {[["Open Gaps", open.length, "var(--info)", false], ["Near Code", urgentCode.length, "var(--orange)", false], ["Credits", fmt$(pendingTotal), "var(--positive)", true], ["Suppliers", suppliers.length, "var(--purple)", false]].map(([l,v,c,small]) => (
           <Card key={l}><div style={{ fontSize: small ? 20 : 32, fontWeight: 800, color: c, fontFamily: "var(--fd)", lineHeight: 1 }}>{v}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 4, textTransform: "uppercase", letterSpacing: 1, fontFamily: "var(--fm)" }}>{l}</div></Card>
         ))}
       </div>
@@ -395,8 +395,8 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
         <div style={{ marginBottom: 24 }}>
           <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Alerts</h3>
           {notifs.filter(n => !n.read).map(n => (
-            <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 12, background: n.type === "urgent" ? "#fff0e4" : n.type === "warning" ? "#fff4d9" : "#f2ebf9", border: `1px solid ${n.type === "urgent" ? "#e9c2a2" : n.type === "warning" ? "#e6d09a" : "#b8d4e8"}`, borderRadius: 10, padding: "12px 16px", marginBottom: 8 }}>
-              <Icon d={IC.bell} size={16} color={n.type === "urgent" ? "#b45716" : n.type === "warning" ? "#956100" : "#28689a"} />
+            <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 12, background: n.type === "urgent" ? "var(--orange-bg)" : n.type === "warning" ? "var(--warning-bg)" : "var(--purple-bg)", border: `1px solid ${n.type === "urgent" ? "var(--orange-border)" : n.type === "warning" ? "var(--warning-border)" : "var(--info-border)"}`, borderRadius: 10, padding: "12px 16px", marginBottom: 8 }}>
+              <Icon d={IC.bell} size={16} color={n.type === "urgent" ? "var(--orange)" : n.type === "warning" ? "var(--warning)" : "var(--info)"} />
               <span style={{ flex: 1, fontSize: 13, color: "var(--t2)" }}>{n.text}</span>
               <button onClick={() => onDismissNotif(n.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tm)", padding: 2 }}><Icon d={IC.x} size={13} /></button>
             </div>
@@ -435,14 +435,14 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, color: s.when === "TODAY" ? "#b45716" : "#956100", fontFamily: "var(--fm)", letterSpacing: 1, background: s.when === "TODAY" ? "#fff0e4" : "#fff4d9", padding: "2px 8px", borderRadius: 10 }}>{s.when}</span>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: s.when === "TODAY" ? "var(--orange)" : "var(--warning)", fontFamily: "var(--fm)", letterSpacing: 1, background: s.when === "TODAY" ? "var(--orange-bg)" : "var(--warning-bg)", padding: "2px 8px", borderRadius: 10 }}>{s.when}</span>
                       <span style={{ fontWeight: 700, color: "var(--t1)", fontSize: 15 }}>{s.name}</span>
                     </div>
                     <div style={{ fontSize: 12, color: "var(--tm)" }}>{s.contact} · {s.phone}</div>
-                    {repCreditTotal > 0 && <div style={{ fontSize: 12, color: "#28745b", marginTop: 4 }}>{fmt$(repCreditTotal)} outstanding credits to claim</div>}
+                    {repCreditTotal > 0 && <div style={{ fontSize: 12, color: "var(--positive)", marginTop: 4 }}>{fmt$(repCreditTotal)} outstanding credits to claim</div>}
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: rg > 0 ? "#b23b38" : "#28745b", fontFamily: "var(--fd)" }}>{rg}</div>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: rg > 0 ? "var(--danger)" : "var(--positive)", fontFamily: "var(--fd)" }}>{rg}</div>
                     <div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>OPEN GAPS</div>
                   </div>
                 </div>
@@ -486,10 +486,10 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
                   style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0, cursor: "zoom-in" }} />
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}><Dot priority={g.priority} /><span style={{ fontWeight: 700, fontSize: 15, color: "var(--t1)" }}>{g.description}</span><Badge status={g.status} />{g.priority === "high" && <span style={{ fontSize: 10, color: "#b23b38", fontFamily: "var(--fm)", letterSpacing: 1 }}>HIGH PRIORITY</span>}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}><Dot priority={g.priority} /><span style={{ fontWeight: 700, fontSize: 15, color: "var(--t1)" }}>{g.description}</span><Badge status={g.status} />{g.priority === "high" && <span style={{ fontSize: 10, color: "var(--danger)", fontFamily: "var(--fm)", letterSpacing: 1 }}>HIGH PRIORITY</span>}</div>
                 <div style={{ fontSize: 12, color: "var(--tm)", marginBottom: 6, display: "flex", flexWrap: "wrap", gap: "4px 14px" }}><span>{sup?.name||"—"}</span><span>{fmtLocation(g.aisle, g.bay)}</span><span>{g.loggedBy}</span><span>{fmtDate(g.loggedAt)}</span></div>
                 {g.notes && <div style={{ fontSize: 12, color: "var(--t2)", background: "var(--ib)", borderRadius: 6, padding: "6px 10px" }}>"{g.notes}"</div>}
-                {g.unavailableUntil && <div style={{ fontSize: 11, color: "#956100", marginTop: 4 }}>Expected back: {fmtDate(g.unavailableUntil)}</div>}
+                {g.unavailableUntil && <div style={{ fontSize: 11, color: "var(--warning)", marginTop: 4 }}>Expected back: {fmtDate(g.unavailableUntil)}</div>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
                 {!isDeletionStatus && g.status !== "ordered" && (
@@ -501,12 +501,12 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
                 {!isDeletionStatus && (
                   deletionOpen === g.id ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                      <button onClick={() => { onResolve(g.id, "deletion_confirmed"); setDeletionOpen(null); }} style={{ background: "#f2ebf9", color: "#70549a", border: "1px solid #d8c6eb", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Confirmed</button>
-                      <button onClick={() => { onResolve(g.id, "deletion_followup"); setDeletionOpen(null); }} style={{ background: "#fff0e4", color: "#b45716", border: "1px solid #e9c2a2", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Follow Up</button>
+                      <button onClick={() => { onResolve(g.id, "deletion_confirmed"); setDeletionOpen(null); }} style={{ background: "var(--purple-bg)", color: "var(--purple)", border: "1px solid var(--purple-border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Confirmed</button>
+                      <button onClick={() => { onResolve(g.id, "deletion_followup"); setDeletionOpen(null); }} style={{ background: "var(--orange-bg)", color: "var(--orange)", border: "1px solid var(--orange-border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Follow Up</button>
                       <button onClick={() => setDeletionOpen(null)} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}><Icon d={IC.x} size={14} /></button>
                     </div>
                   ) : (
-                    <button onClick={() => setDeletionOpen(g.id)} style={{ background: "#f2ebf9", color: "#70549a", border: "1px solid #d8c6eb", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Deletion</button>
+                    <button onClick={() => setDeletionOpen(g.id)} style={{ background: "var(--purple-bg)", color: "var(--purple)", border: "1px solid var(--purple-border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Deletion</button>
                   )
                 )}
                 <button onClick={() => onDelete(g.id)} style={{ ...BD, padding: "5px 12px", fontSize: 12 }}>Delete</button>
@@ -549,8 +549,8 @@ function CloseToCodeView({ items, suppliers, onAdd, onUpdateStatus, onDelete }) 
                 {alert && item.status === "active" && <div style={{ background: alert.bg, border: `1px solid ${alert.border}`, borderRadius: 8, padding: "6px 12px", marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon d={IC.bell} size={14} color={alert.color} /><span style={{ fontSize: 12, color: alert.color, fontWeight: 700 }}>{alert.label}</span></div>}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}><span style={{ fontWeight: 700, fontSize: 15, color: "var(--t1)" }}>{item.description}</span><Badge status={item.status} meta={CODE_STATUS_META} /></div>
                 <div style={{ fontSize: 12, color: "var(--tm)", marginBottom: 6, display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
-                  <span>Use by: <strong style={{ color: days !== null && days <= 7 ? "#b23b38" : days !== null && days <= 14 ? "#956100" : "var(--t2)" }}>{fmtDate(item.useByDate)}</strong></span>
-                  {days !== null && <span style={{ color: days <= 0 ? "#ff3030" : days <= 2 ? "#b23b38" : days <= 7 ? "#b45716" : "var(--tm)" }}>{days <= 0 ? "EXPIRED" : `${days} day${days === 1 ? "" : "s"} left`}</span>}
+                  <span>Use by: <strong style={{ color: days !== null && days <= 7 ? "var(--danger)" : days !== null && days <= 14 ? "var(--warning)" : "var(--t2)" }}>{fmtDate(item.useByDate)}</strong></span>
+                  {days !== null && <span style={{ color: days <= 0 ? "var(--danger)" : days <= 2 ? "var(--danger)" : days <= 7 ? "var(--orange)" : "var(--tm)" }}>{days <= 0 ? "EXPIRED" : `${days} day${days === 1 ? "" : "s"} left`}</span>}
                   {item.quantity && <span>{item.quantity}</span>}
                   <span>{fmtLocation(item.aisle, item.bay)}</span>
                   {sup && <span>{sup.name}</span>}
@@ -558,7 +558,7 @@ function CloseToCodeView({ items, suppliers, onAdd, onUpdateStatus, onDelete }) 
                 {item.notes && <div style={{ fontSize: 12, color: "var(--t2)", background: "var(--ib)", borderRadius: 6, padding: "6px 10px" }}>"{item.notes}"</div>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-                {item.status === "active" && <><button onClick={() => onUpdateStatus(item.id, "marked_down")} style={{ ...BS, padding: "5px 12px", fontSize: 11, whiteSpace: "nowrap" }}>Mark Down</button><button onClick={() => onUpdateStatus(item.id, "returned")} style={{ ...BS, padding: "5px 12px", fontSize: 11 }}>Returned</button><button onClick={() => onUpdateStatus(item.id, "removed")} style={{ background: "#fff0e4", color: "#b45716", border: "1px solid #e9c2a2", borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontFamily: "var(--fb)" }}>Remove</button></>}
+                {item.status === "active" && <><button onClick={() => onUpdateStatus(item.id, "marked_down")} style={{ ...BS, padding: "5px 12px", fontSize: 11, whiteSpace: "nowrap" }}>Mark Down</button><button onClick={() => onUpdateStatus(item.id, "returned")} style={{ ...BS, padding: "5px 12px", fontSize: 11 }}>Returned</button><button onClick={() => onUpdateStatus(item.id, "removed")} style={{ background: "var(--orange-bg)", color: "var(--orange)", border: "1px solid var(--orange-border)", borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontFamily: "var(--fb)" }}>Remove</button></>}
                 <button onClick={() => onDelete(item.id)} style={{ ...BD, padding: "5px 12px", fontSize: 11 }}>Delete</button>
               </div>
             </div>
@@ -597,7 +597,7 @@ function CreditSection({ type, credits, supplierId, onAdd, onUpdateStatus, onDel
               <div style={{ fontWeight: 600, color: "var(--t1)", fontSize: 14, marginBottom: 4 }}>{c.description}</div>
               <div style={{ fontSize: 12, color: "var(--tm)", display: "flex", flexWrap: "wrap", gap: "4px 12px" }}>
                 {c.quantity && <span>{c.quantity}</span>}
-                {c.value && <span style={{ color: "#28745b", fontWeight: 700 }}>{fmt$(c.value)}</span>}
+                {c.value && <span style={{ color: "var(--positive)", fontWeight: 700 }}>{fmt$(c.value)}</span>}
                 <span>{fmtDate(c.dateRaised)}</span>
                 {c.refNumber && <span>Ref: {c.refNumber}</span>}
               </div>
@@ -664,13 +664,13 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontWeight: 700, fontSize: 16, color: "var(--t1)" }}>{s.name}</span>
-                  {repWhen && <span style={{ fontSize: 10, fontWeight: 800, color: repWhen === "TODAY" ? "#b45716" : "#956100", fontFamily: "var(--fm)", letterSpacing: 1, background: repWhen === "TODAY" ? "#fff0e4" : "#fff4d9", padding: "2px 8px", borderRadius: 10 }}>REP {repWhen}</span>}
+                  {repWhen && <span style={{ fontSize: 10, fontWeight: 800, color: repWhen === "TODAY" ? "var(--orange)" : "var(--warning)", fontFamily: "var(--fm)", letterSpacing: 1, background: repWhen === "TODAY" ? "var(--orange-bg)" : "var(--warning-bg)", padding: "2px 8px", borderRadius: 10 }}>REP {repWhen}</span>}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--tm)", marginTop: 2 }}>{s.visitDay} · <span style={{ textTransform: "capitalize" }}>{s.frequency}</span></div>
               </div>
               <div style={{ display: "flex", gap: 16, alignItems: "center", flexShrink: 0 }}>
-                {pendingTotal > 0 && <div style={{ textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: "#28745b", fontFamily: "var(--fd)" }}>{fmt$(pendingTotal)}</div><div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>CREDITS</div></div>}
-                <div style={{ textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 800, color: og > 0 ? "#b23b38" : "#28745b", fontFamily: "var(--fd)" }}>{og}</div><div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>GAPS</div></div>
+                {pendingTotal > 0 && <div style={{ textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: "var(--positive)", fontFamily: "var(--fd)" }}>{fmt$(pendingTotal)}</div><div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>CREDITS</div></div>}
+                <div style={{ textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 800, color: og > 0 ? "var(--danger)" : "var(--positive)", fontFamily: "var(--fd)" }}>{og}</div><div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>GAPS</div></div>
                 <Icon d={IC.chev} size={16} color="var(--tm)" />
               </div>
             </div>
@@ -681,7 +681,7 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
                   {[["details","Rep Details"],["credits","Credits & Returns"]].map(([id, label]) => (
                     <button key={id} onClick={() => setTab(s.id, id)} style={{ background: "none", border: "none", borderBottom: `2px solid ${tab === id ? "var(--a)" : "transparent"}`, color: tab === id ? "var(--a)" : "var(--tm)", cursor: "pointer", padding: "12px 16px", fontSize: 13, fontWeight: tab === id ? 700 : 400, fontFamily: "var(--fb)", transition: "color .15s", marginBottom: -1 }}>
                       {label}
-                      {id === "credits" && pendingTotal > 0 && <span style={{ marginLeft: 6, background: "#e7f2eb", color: "#28745b", border: "1px solid #b7dbc6", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{fmt$(pendingTotal)}</span>}
+                      {id === "credits" && pendingTotal > 0 && <span style={{ marginLeft: 6, background: "var(--positive-bg)", color: "var(--positive)", border: "1px solid var(--positive-border)", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{fmt$(pendingTotal)}</span>}
                     </button>
                   ))}
                   <div style={{ flex: 1 }} />
@@ -712,9 +712,9 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
                 {tab === "credits" && (
                   <div style={{ padding: "20px" }}>
                     {pendingTotal > 0 && (
-                      <div style={{ background: "#e7f2eb", border: "1px solid #b7dbc6", borderRadius: 10, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: 13, color: "#28745b" }}>Total outstanding credits</span>
-                        <span style={{ fontSize: 20, fontWeight: 800, color: "#28745b", fontFamily: "var(--fd)" }}>{fmt$(pendingTotal)}</span>
+                      <div style={{ background: "var(--positive-bg)", border: "1px solid var(--positive-border)", borderRadius: 10, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 13, color: "var(--positive)" }}>Total outstanding credits</span>
+                        <span style={{ fontSize: 20, fontWeight: 800, color: "var(--positive)", fontFamily: "var(--fd)" }}>{fmt$(pendingTotal)}</span>
                       </div>
                     )}
                     {CREDIT_TYPES.map(type => (
@@ -759,13 +759,13 @@ function ReportsView({ gaps, suppliers, credits }) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
             <div style={{ fontWeight: 700, color: "var(--t1)", fontSize: 15 }}>{s.name}</div>
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-              {[["Total",s.total,"#70549a"],["Ordered",s.ordered,"#28745b"],["Missed",s.missed,"#b23b38"],["Credits",fmt$(s.creditTotal),"#28745b"]].map(([l,v,c]) => (
+              {[["Total",s.total,"var(--purple)"],["Ordered",s.ordered,"var(--positive)"],["Missed",s.missed,"var(--danger)"],["Credits",fmt$(s.creditTotal),"var(--positive)"]].map(([l,v,c]) => (
                 <div key={l} style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: c, fontFamily: "var(--fd)" }}>{v}</div><div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)", letterSpacing: 1 }}>{l}</div></div>
               ))}
             </div>
           </div>
           <div style={{ marginTop: 10, height: 5, background: "var(--ib)", borderRadius: 3, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${s.total ? (s.ordered/s.total)*100 : 0}%`, background: "#28745b", borderRadius: 3 }} />
+            <div style={{ height: "100%", width: `${s.total ? (s.ordered/s.total)*100 : 0}%`, background: "var(--positive)", borderRadius: 3 }} />
           </div>
         </Card>
       ))}
@@ -774,7 +774,7 @@ function ReportsView({ gaps, suppliers, credits }) {
 }
 
 // ─── SETTINGS VIEW ────────────────────────────────────────────────────────────
-function SettingsView({ settings, depts, onSave, saving, onAddDept, onUpdateDept, onDeleteDept }) {
+function SettingsView({ settings, depts, onSave, saving, onAddDept, onUpdateDept, onDeleteDept, theme, onThemeChange }) {
   const [f, setF] = useState(settings);
   const [editDept, setEditDept] = useState(null); // null | { id, code, label } | "new"
   const [deptForm, setDeptForm] = useState({ code: "", label: "" });
@@ -792,6 +792,12 @@ function SettingsView({ settings, depts, onSave, saving, onAddDept, onUpdateDept
 
   return (
     <div style={{ maxWidth: 580 }}>
+      <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 14 }}>Appearance</h3>
+      <div role="group" aria-label="Colour theme" style={{ display: "flex", gap: 8, marginBottom: 28 }}>
+        {[["light", "Stone & Forest"], ["dark", "Graphite & Forest"]].map(([value, label]) => (
+          <button key={value} type="button" aria-pressed={theme === value} onClick={() => onThemeChange(value)} style={{ ...BS, flex: 1, background: theme === value ? "var(--ad)" : "var(--c)", color: theme === value ? "var(--a)" : "var(--t2)", borderColor: theme === value ? "var(--a)" : "var(--b)", padding: "12px 10px" }}>{label}</button>
+        ))}
+      </div>
       <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 14 }}>Store Details</h3>
       <Field label="Store Name"><input style={IS} value={f.storeName||""} onChange={e => s("storeName", e.target.value)} /></Field>
       <Field label="Store Email"><input style={IS} type="email" value={f.storeEmail||""} onChange={e => s("storeEmail", e.target.value)} /></Field>
@@ -871,7 +877,7 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
       <Field label="Photo — AI will describe the product">
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <button onClick={() => ref.current.click()} style={{ ...BS, display: "flex", alignItems: "center", gap: 6 }}><Icon d={IC.cam} size={14} /> {aiLoading ? "Analysing…" : "Take / Upload Photo"}</button>
-          {aiDone && <span style={{ fontSize: 12, color: "#28745b" }}>AI generated</span>}
+          {aiDone && <span style={{ fontSize: 12, color: "var(--positive)" }}>AI generated</span>}
           <input ref={ref} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handlePhoto} />
         </div>
         {f.imagePreview && <img src={f.imagePreview} alt="" style={{ marginTop: 10, width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 8 }} />}
@@ -1015,8 +1021,8 @@ function WeeklyBarChart({ data }) {
         const isToday = i === todayDow;
         return (
           <g key={i}>
-            <rect x={cx - bw / 2} y={y} width={bw} height={bh} rx="3" fill={isMax ? "#b45716" : "var(--a)"} opacity={isToday ? 1 : 0.7} />
-            {v > 0 && <text x={cx} y={y - 3} fill={isMax ? "#b45716" : "var(--tm)"} fontSize="7" textAnchor="middle">{v}</text>}
+            <rect x={cx - bw / 2} y={y} width={bw} height={bh} rx="3" fill={isMax ? "var(--orange)" : "var(--a)"} opacity={isToday ? 1 : 0.7} />
+            {v > 0 && <text x={cx} y={y - 3} fill={isMax ? "var(--orange)" : "var(--tm)"} fontSize="7" textAnchor="middle">{v}</text>}
             <text x={cx} y={H - 3} fill={isToday ? "var(--t2)" : "var(--tm)"} fontSize="8" textAnchor="middle" fontWeight={isToday ? "700" : "400"}>{DAY_LABELS[i]}</text>
           </g>
         );
@@ -1192,9 +1198,9 @@ function TheftItemsTab({ itemStats, locations, locReportCounts, onToggleResolved
       )}
 
       {itemStats.map(item => (
-        <div key={item.id} style={{ background: "var(--c)", border: `1px solid ${item.resolved ? "#b7dbc6" : "var(--b)"}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, opacity: item.resolved ? 0.8 : 1 }}>
+        <div key={item.id} style={{ background: "var(--c)", border: `1px solid ${item.resolved ? "var(--positive-border)" : "var(--b)"}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, opacity: item.resolved ? 0.8 : 1 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, color: item.resolved ? "#28745b" : "var(--t1)", marginBottom: 2 }}>{item.name}{item.resolved ? "" : ""}</div>
+            <div style={{ fontWeight: 700, color: item.resolved ? "var(--positive)" : "var(--t1)", marginBottom: 2 }}>{item.name}</div>
             <div style={{ fontSize: 11, color: "var(--tm)" }}>
               {item.count} incident{item.count !== 1 ? "s" : ""} total
               {item.lastDate && ` · Last: ${fmtDate(item.lastDate)}`}
@@ -1202,7 +1208,7 @@ function TheftItemsTab({ itemStats, locations, locReportCounts, onToggleResolved
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            <span style={{ background: item.resolved ? "#e7f2eb" : "#eaf2f9", color: item.resolved ? "#28745b" : "#28689a", border: `1px solid ${item.resolved ? "#b7dbc6" : "#b8d4e8"}`, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: "uppercase", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>
+            <span style={{ background: item.resolved ? "var(--positive-bg)" : "var(--info-bg)", color: item.resolved ? "var(--positive)" : "var(--info)", border: `1px solid ${item.resolved ? "var(--positive-border)" : "var(--info-border)"}`, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: "uppercase", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>
               {item.resolved ? "Resolved" : "Active"}
             </span>
             <button onClick={() => onToggleResolved(item.id, !item.resolved)} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}>
@@ -1267,7 +1273,7 @@ function TheftChartsTab({ incidents, metric, setMetric, monthTab, setMonthTab })
         <span style={{ fontSize: 11, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1 }}>Show:</span>
         <div style={{ display: "flex", border: "1px solid var(--b)", borderRadius: 7, overflow: "hidden", fontSize: 12, fontWeight: 700 }}>
           {[["incidents","Incidents"],["quantity","Quantity"]].map(([val, label]) => (
-            <button key={val} onClick={() => setMetric(val)} style={{ padding: "5px 14px", background: metric === val ? "var(--a)" : "transparent", color: metric === val ? "#fff" : "var(--tm)", border: "none", cursor: "pointer", fontFamily: "var(--fb)", fontWeight: 700, fontSize: 12, transition: "background .15s" }}>
+            <button key={val} onClick={() => setMetric(val)} style={{ padding: "5px 14px", background: metric === val ? "var(--a)" : "transparent", color: metric === val ? "var(--on-a)" : "var(--tm)", border: "none", cursor: "pointer", fontFamily: "var(--fb)", fontWeight: 700, fontSize: 12, transition: "background .15s" }}>
               {label}
             </button>
           ))}
@@ -1294,7 +1300,7 @@ function TheftChartsTab({ incidents, metric, setMetric, monthTab, setMonthTab })
           <div style={{ fontWeight: 700, color: "var(--t1)" }}>{now.toLocaleDateString("en-AU", { month: "long", year: "numeric" })}</div>
           <div style={{ display: "flex", gap: 6 }}>
             {[["totals","Weekly Totals"],["breakdown","Day Breakdown"]].map(([val, label]) => (
-              <button key={val} onClick={() => setMonthTab(val)} style={{ padding: "4px 10px", background: monthTab === val ? "var(--a)" : "transparent", color: monthTab === val ? "#fff" : "var(--tm)", border: `1px solid ${monthTab === val ? "var(--a)" : "var(--b)"}`, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "var(--fb)" }}>
+              <button key={val} onClick={() => setMonthTab(val)} style={{ padding: "4px 10px", background: monthTab === val ? "var(--a)" : "transparent", color: monthTab === val ? "var(--on-a)" : "var(--tm)", border: `1px solid ${monthTab === val ? "var(--a)" : "var(--b)"}`, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "var(--fb)" }}>
                 {label}
               </button>
             ))}
@@ -1497,7 +1503,7 @@ function TheftIncidentsList({ incidents, itemMap, locMap, itemResolvedMap, items
                 {inc.notes && <div style={{ fontSize: 11, color: "var(--t2)", background: "var(--ib)", borderRadius: 6, padding: "4px 8px", marginTop: 4 }}>"{inc.notes}"</div>}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                <span style={{ background: resolved ? "#e7f2eb" : "#eaf2f9", color: resolved ? "#28745b" : "#28689a", border: `1px solid ${resolved ? "#b7dbc6" : "#b8d4e8"}`, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>
+                <span style={{ background: resolved ? "var(--positive-bg)" : "var(--info-bg)", color: resolved ? "var(--positive)" : "var(--info)", border: `1px solid ${resolved ? "var(--positive-border)" : "var(--info-border)"}`, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>
                   {resolved ? "Resolved" : "Active"}
                 </span>
                 <button onClick={() => onDelete(inc.id)} style={{ ...BD, padding: "4px 10px", fontSize: 11 }}>
@@ -1566,8 +1572,8 @@ function HighTheftView({ incidents, items, locations, numAisles, numBays, depts,
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
         <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>This Week</div><div style={{ fontSize: 28, fontWeight: 700, color: "var(--t1)", lineHeight: 1 }}>{thisWeekCount}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>incidents</div></Card>
-        <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Top Item</div><div style={{ fontSize: 14, fontWeight: 700, color: "#b45716", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{topItem?.name || "—"}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>{topItemId ? `${itemCounts[topItemId]} incidents` : "no data"}</div></Card>
-        <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Resolved</div><div style={{ fontSize: 28, fontWeight: 700, color: "#28745b", lineHeight: 1 }}>{resolvedCount}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>items solved</div></Card>
+        <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Top Item</div><div style={{ fontSize: 14, fontWeight: 700, color: "var(--orange)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{topItem?.name || "—"}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>{topItemId ? `${itemCounts[topItemId]} incidents` : "no data"}</div></Card>
+        <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Resolved</div><div style={{ fontSize: 28, fontWeight: 700, color: "var(--positive)", lineHeight: 1 }}>{resolvedCount}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>items solved</div></Card>
       </div>
 
       <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "1px solid var(--b)" }}>
@@ -1599,6 +1605,14 @@ const NAV = [
 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 export default function ShelfAlert() {
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem("shelfalert_theme") === "dark" ? "dark" : "light"; }
+    catch { return "light"; }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("shelfalert_theme", theme); } catch {}
+  }, [theme]);
   const [session, setSession] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [view, setView] = useState("dashboard");
@@ -1884,9 +1898,9 @@ export default function ShelfAlert() {
               <button key={n.id} onClick={() => setView(n.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "none", background: view === n.id ? "var(--ad)" : "transparent", color: view === n.id ? "var(--a)" : "var(--tm)", cursor: "pointer", fontSize: 14, fontFamily: "var(--fb)", fontWeight: view === n.id ? 700 : 400, marginBottom: 2, transition: "background .15s, color .15s", textAlign: "left" }}>
                 <Icon d={n.icon} size={16} color={view === n.id ? "var(--a)" : "var(--tm)"} />
                 {n.label}
-                {n.id === "dashboard" && totalAlerts > 0 && <span style={{ marginLeft: "auto", background: "#b23b38", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{totalAlerts}</span>}
-                {n.id === "gaps" && openGapCount > 0 && <span style={{ marginLeft: "auto", background: "#3b82f6", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{openGapCount}</span>}
-                {n.id === "code" && urgentCodeCount > 0 && <span style={{ marginLeft: "auto", background: "#b45716", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{urgentCodeCount}</span>}
+                {n.id === "dashboard" && totalAlerts > 0 && <span style={{ marginLeft: "auto", background: "var(--badge-danger)", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{totalAlerts}</span>}
+                {n.id === "gaps" && openGapCount > 0 && <span style={{ marginLeft: "auto", background: "var(--badge-info)", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{openGapCount}</span>}
+                {n.id === "code" && urgentCodeCount > 0 && <span style={{ marginLeft: "auto", background: "var(--badge-orange)", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{urgentCodeCount}</span>}
               </button>
             ))}
           </nav>
@@ -1914,7 +1928,7 @@ export default function ShelfAlert() {
             {view === "code"      && <CloseToCodeView items={codeItems} suppliers={suppliers} onAdd={() => setShowCodeForm(true)} onUpdateStatus={handleUpdateCodeStatus} onDelete={handleDeleteCode} />}
             {view === "suppliers" && <SuppliersView suppliers={suppliers} gaps={gaps} credits={credits} onAdd={() => { setEditSup(null); setShowSupForm(true); }} onEdit={s => { setEditSup(s); setShowSupForm(true); }} onDelete={handleDeleteSup} onAddCredit={handleAddCredit} onUpdateCreditStatus={handleUpdateCreditStatus} onDeleteCredit={handleDeleteCredit} />}
             {view === "reports"   && <ReportsView gaps={gaps} suppliers={suppliers} credits={credits} />}
-            {view === "settings"  && <SettingsView settings={settings} depts={depts} onSave={handleSaveSettings} saving={saving} onAddDept={handleAddDept} onUpdateDept={handleUpdateDept} onDeleteDept={handleDeleteDept} />}
+            {view === "settings"  && <SettingsView settings={settings} depts={depts} onSave={handleSaveSettings} saving={saving} onAddDept={handleAddDept} onUpdateDept={handleUpdateDept} onDeleteDept={handleDeleteDept} theme={theme} onThemeChange={setTheme} />}
             {view === "theft"     && <HighTheftView incidents={theftIncidents} items={theftItems} locations={theftLocations} numAisles={settings.numAisles} numBays={settings.numBays} depts={depts} session={session} onShowForm={() => setShowTheftForm(true)} onAddIncident={handleAddTheftIncident} onAddItem={handleAddTheftItem} onToggleResolved={handleToggleTheftItemResolved} onDeleteIncident={handleDeleteTheftIncident} onAddLocation={handleAddTheftLocation} onDeleteLocation={handleDeleteTheftLocation} />}
           </div>
         </main>
@@ -1934,9 +1948,9 @@ export default function ShelfAlert() {
           <button key={n.id} onClick={() => setView(n.id)} className={`mobile-nav-btn${view === n.id ? " active" : ""}`}>
             <Icon d={n.icon} size={20} color={view === n.id ? "var(--a)" : "var(--tm)"} />
             <span style={{ fontSize: 9, marginTop: 2, fontFamily: "var(--fm)" }}>{n.label}</span>
-            {n.id === "dashboard" && totalAlerts > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "#b23b38", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{totalAlerts}</span>}
-            {n.id === "gaps" && openGapCount > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "#3b82f6", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{openGapCount}</span>}
-            {n.id === "code" && urgentCodeCount > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "#b45716", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{urgentCodeCount}</span>}
+            {n.id === "dashboard" && totalAlerts > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "var(--badge-danger)", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{totalAlerts}</span>}
+            {n.id === "gaps" && openGapCount > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "var(--badge-info)", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{openGapCount}</span>}
+            {n.id === "code" && urgentCodeCount > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "var(--badge-orange)", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{urgentCodeCount}</span>}
           </button>
         ))}
       </nav>
@@ -1953,10 +1967,12 @@ export default function ShelfAlert() {
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');
-  :root{--bg:#f7f7f2;--s:#ffffff;--c:#ffffff;--b:#dce3dc;--ib:#f3f6f2;--a:#28745b;--ad:#e7f2eb;--t1:#24302b;--t2:#526159;--tm:#69786e;--fd:'Syne',sans-serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;}
+  :root{--on-a:#ffffff;--badge-danger:#b23b38;--badge-info:#28689a;--badge-orange:#b45716;--bg:#f7f7f2;--s:#ffffff;--c:#ffffff;--b:#dce3dc;--ib:#f3f6f2;--a:#28745b;--ad:#e7f2eb;--t1:#24302b;--t2:#526159;--tm:#69786e;--fd:'Syne',sans-serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;--positive:#28745b;--positive-bg:#e7f2eb;--positive-border:#b7dbc6;--danger:#b23b38;--danger-bg:#fbeceb;--danger-border:#e8b7b4;--orange:#b45716;--orange-bg:#fff0e4;--orange-border:#e9c2a2;--warning:#956100;--warning-bg:#fff4d9;--warning-border:#e6d09a;--info:#28689a;--info-bg:#eaf2f9;--info-border:#b8d4e8;--purple:#70549a;--purple-bg:#f2ebf9;--purple-border:#d8c6eb;}
+  :root[data-theme='dark']{--on-a:#1b3022;--badge-danger:#a73b35;--badge-info:#32648c;--badge-orange:#9b4b22;--bg:#202623;--s:#2a322e;--c:#303934;--b:#455349;--ib:#252e29;--a:#9ad2ab;--ad:#344c3e;--t1:#f2f5ef;--t2:#c5d1c5;--tm:#a6b8a9;--positive:#9ad2ab;--positive-bg:#294336;--positive-border:#4a7358;--danger:#ffaaa4;--danger-bg:#513330;--danger-border:#83504b;--orange:#ffbd8a;--orange-bg:#523d30;--orange-border:#856048;--warning:#ead28b;--warning-bg:#4b442e;--warning-border:#746843;--info:#a8ccec;--info-bg:#2d4353;--info-border:#4c6c83;--purple:#d4b9ee;--purple-bg:#423650;--purple-border:#685178;}
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--t1);}
   input,select,textarea{color-scheme:light;transition:border-color .2s;}
+  :root[data-theme='dark'] input,:root[data-theme='dark'] select,:root[data-theme='dark'] textarea{color-scheme:dark;}
   input:focus,select:focus,textarea:focus{border-color:var(--a)!important;outline:none;}
   ::-webkit-scrollbar{width:6px;height:6px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--b);border-radius:3px;}
   @keyframes spin{to{transform:rotate(360deg);}}
