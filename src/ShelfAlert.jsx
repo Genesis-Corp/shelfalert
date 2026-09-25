@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { getWeeklyData, getMonthlyWeeklyTotals, getMonthlyDayBreakdown, generateTheftCSV } from "./theftUtils";
-import { productTextFromOcr } from "./ocrUtils";
+import { productTextFromOcr, cropGreenShelfTicket } from "./ocrUtils";
 
 // ─── SUPABASE CLIENT (official library — handles auth/refresh automatically) ──
 const supabase = createClient(
@@ -924,12 +924,14 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
         corePath: `${assetRoot}/core`,
         langPath: `${assetRoot}/lang`,
       });
-      const { data } = await worker.recognize(file);
+      const ticket = await cropGreenShelfTicket(file).catch(() => null);
+      if (ticket) await worker.setParameters({ tessedit_pageseg_mode: "7" });
+      const { data } = await worker.recognize(ticket || file);
       if (scanId.current !== currentScan) return;
       const text = data.text.trim();
-      setOcrText(text);
-      const suggestion = productTextFromOcr(text);
-      const supplierMatches = suppliers.filter(sup => sup.name.length >= 4 && text.toLocaleLowerCase().includes(sup.name.toLocaleLowerCase()));
+      setOcrText(text.slice(0, 600));
+      const suggestion = data.confidence >= 55 && text.length < 160 && /[a-z]{3,}.*[a-z]{3,}/i.test(text) ? productTextFromOcr(text) : "";
+      const supplierMatches = suggestion ? suppliers.filter(sup => sup.name.length >= 4 && text.toLocaleLowerCase().includes(sup.name.toLocaleLowerCase())) : [];
       const location = text.match(/\baisle\s*([a-z0-9]{1,3})(?:\W+bay\s*(\d{1,3}))?/i);
       const aisle = location?.[1]?.toUpperCase();
       const validAisle = aisle && (/^\d+$/.test(aisle) ? +aisle >= 1 && +aisle <= numAisles : depts.some(dept => dept.code === aisle));
@@ -942,7 +944,7 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
       }));
       if (suggestion) {
         setOcrMessage("Product text found. Check the description before saving.");
-      } else setOcrMessage("No readable product text found. Enter the description manually.");
+      } else setOcrMessage("The label could not be read clearly. Move closer to the product name or enter it manually.");
     } catch (error) {
       console.error("On-device text recognition failed:", error);
       if (scanId.current === currentScan) setOcrMessage("Text reading was unavailable. You can still enter the details manually.");
@@ -968,7 +970,7 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
         </div>
         {f.imagePreview && <img src={f.imagePreview} alt="Selected product or shelf label" style={{ marginTop: 10, width: "100%", maxHeight: 160, objectFit: "contain", background: "var(--ib)", borderRadius: 8 }} />}
         {ocrMessage && <div role="status" style={{ fontSize: 12, color: ocrLoading ? "var(--t2)" : "var(--positive)", marginTop: 8 }}>{ocrMessage}</div>}
-        {ocrText && <details style={{ marginTop: 8, color: "var(--t2)", fontSize: 12 }}><summary>Show recognised text</summary><div style={{ whiteSpace: "pre-wrap", marginTop: 6, padding: 8, background: "var(--ib)", borderRadius: 6 }}>{ocrText}</div></details>}
+        {ocrText && <details style={{ marginTop: 8, color: "var(--t2)", fontSize: 12 }}><summary>Show recognised text</summary><div style={{ whiteSpace: "pre-wrap", overflow: "auto", maxHeight: 140, marginTop: 6, padding: 8, background: "var(--ib)", borderRadius: 6 }}>{ocrText}</div></details>}
       </Field>
       <Field label="Product Description"><input style={IS} placeholder="e.g. Birds Eye Chicken Nuggets 400g" value={f.description} onChange={e => s("description", e.target.value)} /></Field>
       <Field label="Supplier">
