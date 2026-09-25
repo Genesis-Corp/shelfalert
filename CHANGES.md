@@ -9,7 +9,7 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - [x] Refine the palette across signed-in screens and add an optional graphite dark theme in Settings. Theme choice is saved on this device.
 - [x] Replace Syne, DM Sans and DM Mono with Atkinson Hyperlegible Next throughout the interface.
 - [x] Make Dashboard a task-first Today view: rep visits, near-code alerts and priority gaps first; Log gap and View all gaps actions; supporting statistics below.
-- [ ] Group desktop navigation and simplify mobile navigation to Today, Issues, Suppliers, Reports, and More.
+- [x] Group desktop navigation and simplify mobile navigation to Today, Issues, Suppliers, Reports, and More. Issues opens Gaps, Near Code and High Theft Items; More opens Settings.
 - [ ] Standardise list screens with search, filters, clear row actions, and consistent spacing.
 - [ ] Review layouts at phone, tablet, and desktop widths with authenticated data.
 
@@ -27,3 +27,5 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - 2026-09-25: Removed unused `DEPT_CODES` so warnings cannot turn into failures under `CI=true`. The initial changes were pushed to `codex/shelfalert-light-theme` on GitHub; Vercel deployment still needs verification.
 - 2026-09-25: Completed the palette refinement with theme-aware status colours and a Settings theme control. Font options to review next: Source Sans 3, Nunito Sans, and Atkinson Hyperlegible.
 - 2026-09-25: Jericho selected Atkinson Hyperlegible Next. Updated the interface font and reordered Today around store tasks, with the date and rep schedule using the store timezone. Next: navigation cleanup.
+- 2026-09-25: Grouped desktop navigation and replaced the seven-item mobile bar with five destinations and an Issues menu. Verified with `CI=true npm run build`. Next: list screen consistency.
+- 2026-09-25: Repository default branch is `master` (no `main` branch exists). At Jericho's request, the feature branch is being merged into that default branch so future changes can go directly to the production branch.
