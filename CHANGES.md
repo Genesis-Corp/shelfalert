@@ -6,7 +6,8 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 
 - [x] Remove emoji from the application and alert email template.
 - [x] Start the light Stone and Forest palette: warm surfaces, dark text, forest green actions, and readable status colours.
-- [ ] Refine the palette across every signed-in screen and add an optional graphite dark theme in Settings.
+- [x] Refine the palette across signed-in screens and add an optional graphite dark theme in Settings. Theme choice is saved on this device.
+- [ ] Replace the technical display and monospace fonts with a practical, highly readable retail interface font after selecting a direction.
 - [ ] Make Dashboard a task-first Today view: rep visits and urgent items first, obvious Log gap action, supporting statistics below.
 - [ ] Group desktop navigation and simplify mobile navigation to Today, Issues, Suppliers, Reports, and More.
 - [ ] Standardise list screens with search, filters, clear row actions, and consistent spacing.
@@ -23,4 +24,5 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 ## Notes
 
 - 2026-09-25: Began the light palette and removed emoji in source and email. Production email sending remains unverified; no credentials or scheduler are stored in this repository.
-- 2026-09-25: Following a report of a Vercel build failure, removed unused `DEPT_CODES` so warnings cannot turn into failures under `CI=true`. `CI=true npm run build` now compiles successfully locally. The reported Vercel deployment's build log is still needed to identify its specific failure; local changes remain uncommitted and are absent from GitHub HEAD.
+- 2026-09-25: Removed unused `DEPT_CODES` so warnings cannot turn into failures under `CI=true`. The initial changes were pushed to `codex/shelfalert-light-theme` on GitHub; Vercel deployment still needs verification.
+- 2026-09-25: Completed the palette refinement with theme-aware status colours and a Settings theme control. Font options to review next: Source Sans 3, Nunito Sans, and Atkinson Hyperlegible.
