@@ -85,17 +85,6 @@ const DAYS  = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Su
 const FREQS = ["weekly","fortnightly","monthly"];
 const TIMEZONES = ["Australia/Perth","Australia/Sydney","Australia/Melbourne","Australia/Brisbane","Australia/Adelaide","Australia/Darwin","Pacific/Auckland","Asia/Singapore","Europe/London","America/New_York","America/Los_Angeles"];
 
-// Department codes (letter-based aisles)
-const DEPT_CODES = [
-  { code: "MT", label: "MT — Meat" },
-  { code: "SF", label: "SF — Seafood" },
-  { code: "DL", label: "DL — Deli" },
-  { code: "DY", label: "DY — Dairy" },
-  { code: "FZ", label: "FZ — Freezer" },
-  { code: "DF", label: "DF — Drinks Fridge" },
-  { code: "FV", label: "FV — Fruit & Veg" },
-];
-
 // Build aisle options: numbered aisles + department codes
 const buildAisleOptions = (numAisles, depts = []) => {
   const numbered = Array.from({ length: numAisles }, (_, i) => ({ value: String(i + 1), label: `Aisle ${i + 1}` }));
@@ -115,30 +104,30 @@ const fmtLocation = (aisle, bay, depts = []) => {
 
 const CREDIT_TYPES = ["damaged", "out_of_code", "non_scan"];
 const CREDIT_TYPE_META = {
-  damaged:     { label: "Damaged",     color: "#f87171", bg: "#3d1a1a", border: "#7a2a2a", icon: "💥" },
-  out_of_code: { label: "Out of Code", color: "#fbbf24", bg: "#1e1a00", border: "#5a4a00", icon: "📅" },
-  non_scan:    { label: "Non-Scan",    color: "#a78bfa", bg: "#1a1535", border: "#4a3a8a", icon: "🔍" },
+  damaged:     { label: "Damaged",     color: "#f87171", bg: "#fbeceb", border: "#e8b7b4", icon: "D" },
+  out_of_code: { label: "Out of Code", color: "#956100", bg: "#fff4d9", border: "#e6d09a", icon: "C" },
+  non_scan:    { label: "Non-Scan",    color: "#70549a", bg: "#f2ebf9", border: "#d8c6eb", icon: "N" },
 };
 const CREDIT_STATUS_META = {
-  pending:   { label: "Pending",   bg: "#0f1e35", text: "#60a5fa", border: "#1a3a6a" },
-  confirmed: { label: "Confirmed", bg: "#1e1a00", text: "#fbbf24", border: "#5a4a00" },
-  received:  { label: "Received",  bg: "#0f2e1a", text: "#4ade80", border: "#1a5c30" },
-  disputed:  { label: "Disputed",  bg: "#3d1a1a", text: "#ff7070", border: "#7a2a2a" },
-  resolved:  { label: "Resolved",  bg: "#1a1a1a", text: "#5a6478", border: "#2a2a2a" },
+  pending:   { label: "Pending",   bg: "#eaf2f9", text: "#28689a", border: "#b8d4e8" },
+  confirmed: { label: "Confirmed", bg: "#fff4d9", text: "#956100", border: "#e6d09a" },
+  received:  { label: "Received",  bg: "#e7f2eb", text: "#28745b", border: "#b7dbc6" },
+  disputed:  { label: "Disputed",  bg: "#fbeceb", text: "#b23b38", border: "#e8b7b4" },
+  resolved:  { label: "Resolved",  bg: "#f3f6f2", text: "#526159", border: "#dce3dc" },
 };
 const STATUS_META = {
-  missed:              { label: "Missed",       bg: "#3d1a1a", text: "#ff7070", border: "#7a2a2a" },
-  ordered:             { label: "Ordered",      bg: "#0f2e1a", text: "#4ade80", border: "#1a5c30" },
-  unavailable:         { label: "Unavailable",  bg: "#1e1a00", text: "#fbbf24", border: "#5a4a00" },
-  open:                { label: "Open",         bg: "#0f1e35", text: "#60a5fa", border: "#1a3a6a" },
-  deletion_confirmed:  { label: "Deletion ✓",  bg: "#1e0a30", text: "#c4b5fd", border: "#5a2a9a" },
-  deletion_followup:   { label: "Follow Up",   bg: "#2a1500", text: "#f97316", border: "#7a3500" },
+  missed:              { label: "Missed",       bg: "#fbeceb", text: "#b23b38", border: "#e8b7b4" },
+  ordered:             { label: "Ordered",      bg: "#e7f2eb", text: "#28745b", border: "#b7dbc6" },
+  unavailable:         { label: "Unavailable",  bg: "#fff4d9", text: "#956100", border: "#e6d09a" },
+  open:                { label: "Open",         bg: "#eaf2f9", text: "#28689a", border: "#b8d4e8" },
+  deletion_confirmed:  { label: "Deletion",  bg: "#f2ebf9", text: "#70549a", border: "#d8c6eb" },
+  deletion_followup:   { label: "Follow Up",   bg: "#fff0e4", text: "#b45716", border: "#e9c2a2" },
 };
 const CODE_STATUS_META = {
-  active:      { label: "Active",      bg: "#0f1e35", text: "#60a5fa", border: "#1a3a6a" },
-  marked_down: { label: "Marked Down", bg: "#1e1a00", text: "#fbbf24", border: "#5a4a00" },
-  returned:    { label: "Returned",    bg: "#0f2e1a", text: "#4ade80", border: "#1a5c30" },
-  removed:     { label: "Removed",     bg: "#1a1a1a", text: "#5a6478", border: "#2a2a2a" },
+  active:      { label: "Active",      bg: "#eaf2f9", text: "#28689a", border: "#b8d4e8" },
+  marked_down: { label: "Marked Down", bg: "#fff4d9", text: "#956100", border: "#e6d09a" },
+  returned:    { label: "Returned",    bg: "#e7f2eb", text: "#28745b", border: "#b7dbc6" },
+  removed:     { label: "Removed",     bg: "#f3f6f2", text: "#526159", border: "#dce3dc" },
 };
 
 const getCodeAlert = (useByDate) => {
@@ -146,9 +135,9 @@ const getCodeAlert = (useByDate) => {
   const days = Math.ceil((new Date(useByDate) - new Date()) / 86400000);
   if (days < 0)    return { label: "EXPIRED — Remove now",       color: "#ff3030", bg: "#3d0000", border: "#7a0000" };
   if (days === 0)  return { label: "Remove from shelf TODAY",     color: "#ff3030", bg: "#3d0000", border: "#7a0000" };
-  if (days <= 2)   return { label: "Clearance — 2 days left",    color: "#ff7070", bg: "#3d1a1a", border: "#7a2a2a" };
-  if (days <= 7)   return { label: "Urgent action — 1 week left",color: "#f97316", bg: "#2a1500", border: "#7a3500" };
-  if (days <= 14)  return { label: "Action required — 2 weeks",  color: "#fbbf24", bg: "#1e1a00", border: "#5a4a00" };
+  if (days <= 2)   return { label: "Clearance — 2 days left",    color: "#b23b38", bg: "#fbeceb", border: "#e8b7b4" };
+  if (days <= 7)   return { label: "Urgent action — 1 week left",color: "#b45716", bg: "#fff0e4", border: "#e9c2a2" };
+  if (days <= 14)  return { label: "Action required — 2 weeks",  color: "#956100", bg: "#fff4d9", border: "#e6d09a" };
   return null;
 };
 const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
@@ -242,16 +231,16 @@ const IC = {
 
 // ─── SHARED UI ────────────────────────────────────────────────────────────────
 const IS = { width: "100%", background: "var(--ib)", border: "1px solid var(--b)", borderRadius: 8, padding: "10px 12px", color: "var(--t1)", fontSize: 14, fontFamily: "var(--fb)", outline: "none", boxSizing: "border-box" };
-const BP = { background: "var(--a)", color: "#000", border: "none", borderRadius: 8, padding: "10px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
+const BP = { background: "var(--a)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
 const BS = { background: "transparent", color: "var(--t2)", border: "1px solid var(--b)", borderRadius: 8, padding: "10px 20px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
-const BD = { background: "#3d1a1a", color: "#ff7070", border: "1px solid #7a2a2a", borderRadius: 8, padding: "10px 20px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
+const BD = { background: "#fbeceb", color: "#b23b38", border: "1px solid #e8b7b4", borderRadius: 8, padding: "10px 20px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "var(--fb)" };
 
 function Badge({ status, meta = STATUS_META }) {
   const m = meta[status] || STATUS_META.open;
   return <span style={{ background: m.bg, color: m.text, border: `1px solid ${m.border}`, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>{m.label}</span>;
 }
 function Dot({ priority }) {
-  return <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: priority === "high" ? "#ef4444" : "#4b5563", marginRight: 6, flexShrink: 0, boxShadow: priority === "high" ? "0 0 6px #ef4444" : "none" }} />;
+  return <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: priority === "high" ? "#b23b38" : "#4b5563", marginRight: 6, flexShrink: 0, boxShadow: priority === "high" ? "0 0 6px #b23b38" : "none" }} />;
 }
 function Card({ children, style = {}, onClick }) {
   return (
@@ -288,8 +277,8 @@ function Spin() { return <div style={{ width: 18, height: 18, border: "2px solid
 function Toast({ msg, type = "success", onDone }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t); }, []);
-  const c = { success: "var(--a)", error: "#ff7070", info: "#60a5fa" }[type] || "var(--a)";
-  return <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "#1a1a1a", border: `1px solid ${c}`, borderRadius: 10, padding: "12px 20px", color: c, fontSize: 13, fontWeight: 600, zIndex: 2000, boxShadow: "0 8px 32px rgba(0,0,0,.6)", whiteSpace: "nowrap" }}>{msg}</div>;
+  const c = { success: "var(--a)", error: "#b23b38", info: "#28689a" }[type] || "var(--a)";
+  return <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "var(--s)", border: `1px solid ${c}`, borderRadius: 10, padding: "12px 20px", color: c, fontSize: 13, fontWeight: 600, zIndex: 2000, boxShadow: "0 8px 32px rgba(0,0,0,.6)", whiteSpace: "nowrap" }}>{msg}</div>;
 }
 
 // ─── LOCATION PICKER ──────────────────────────────────────────────────────────
@@ -345,7 +334,7 @@ function LoginScreen({ onLogin }) {
     <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ width: "100%", maxWidth: 420 }}>
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ fontSize: 44, marginBottom: 8 }}>🛒</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><span style={{ width: 54, height: 54, borderRadius: 16, background: "var(--ad)", display: "grid", placeItems: "center" }}><Icon d={IC.gap} size={27} color="var(--a)" /></span></div>
           <div style={{ fontFamily: "var(--fd)", fontSize: 34, fontWeight: 900, color: "var(--a)", letterSpacing: -1 }}>ShelfAlert</div>
           <div style={{ color: "var(--tm)", fontSize: 14, marginTop: 4 }}>Supermarket gap management</div>
         </div>
@@ -358,7 +347,7 @@ function LoginScreen({ onLogin }) {
               <button onClick={() => setShowPass(v => !v)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--tm)", padding: 0 }}><Icon d={showPass ? IC.eyeOff : IC.eye} size={15} /></button>
             </div>
           </Field>
-          {err && <div style={{ fontSize: 12, color: err.includes("created") ? "#4ade80" : "#ff7070", marginBottom: 12, padding: "8px 12px", background: err.includes("created") ? "#0f2e1a" : "#3d1a1a", borderRadius: 6 }}>{err}</div>}
+          {err && <div style={{ fontSize: 12, color: err.includes("created") ? "#28745b" : "#b23b38", marginBottom: 12, padding: "8px 12px", background: err.includes("created") ? "#e7f2eb" : "#fbeceb", borderRadius: 6 }}>{err}</div>}
           <button onClick={submit} disabled={loading} style={{ ...BP, width: "100%", padding: 14, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             {loading ? <Spin /> : (mode === "signup" ? "Create Account" : "Sign In")}
           </button>
@@ -384,7 +373,7 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 24 }}>
-        {[["Open Gaps", open.length, "#60a5fa", false], ["Near Code", urgentCode.length, "#f97316", false], ["Credits", fmt$(pendingTotal), "#4ade80", true], ["Suppliers", suppliers.length, "#a78bfa", false]].map(([l,v,c,small]) => (
+        {[["Open Gaps", open.length, "#28689a", false], ["Near Code", urgentCode.length, "#b45716", false], ["Credits", fmt$(pendingTotal), "#28745b", true], ["Suppliers", suppliers.length, "#70549a", false]].map(([l,v,c,small]) => (
           <Card key={l}><div style={{ fontSize: small ? 20 : 32, fontWeight: 800, color: c, fontFamily: "var(--fd)", lineHeight: 1 }}>{v}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 4, textTransform: "uppercase", letterSpacing: 1, fontFamily: "var(--fm)" }}>{l}</div></Card>
         ))}
       </div>
@@ -406,8 +395,8 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
         <div style={{ marginBottom: 24 }}>
           <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Alerts</h3>
           {notifs.filter(n => !n.read).map(n => (
-            <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 12, background: n.type === "urgent" ? "#2a1500" : n.type === "warning" ? "#1e1a00" : "#1a1a2e", border: `1px solid ${n.type === "urgent" ? "#7a3500" : n.type === "warning" ? "#5a4a00" : "#1a3a6a"}`, borderRadius: 10, padding: "12px 16px", marginBottom: 8 }}>
-              <Icon d={IC.bell} size={16} color={n.type === "urgent" ? "#f97316" : n.type === "warning" ? "#fbbf24" : "#60a5fa"} />
+            <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 12, background: n.type === "urgent" ? "#fff0e4" : n.type === "warning" ? "#fff4d9" : "#f2ebf9", border: `1px solid ${n.type === "urgent" ? "#e9c2a2" : n.type === "warning" ? "#e6d09a" : "#b8d4e8"}`, borderRadius: 10, padding: "12px 16px", marginBottom: 8 }}>
+              <Icon d={IC.bell} size={16} color={n.type === "urgent" ? "#b45716" : n.type === "warning" ? "#956100" : "#28689a"} />
               <span style={{ flex: 1, fontSize: 13, color: "var(--t2)" }}>{n.text}</span>
               <button onClick={() => onDismissNotif(n.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tm)", padding: 2 }}><Icon d={IC.x} size={13} /></button>
             </div>
@@ -416,7 +405,7 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
       )}
 
       <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Recent Gaps</h3>
-      {gaps.length === 0 && <div style={{ textAlign: "center", color: "var(--tm)", padding: 32, fontSize: 14 }}>No gaps logged yet 🎉</div>}
+      {gaps.length === 0 && <div style={{ textAlign: "center", color: "var(--tm)", padding: 32, fontSize: 14 }}>No gaps logged yet</div>}
       {gaps.slice(0, 5).map(g => {
         const sup = suppliers.find(s => s.id === g.supplierId);
         return (
@@ -446,14 +435,14 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, color: s.when === "TODAY" ? "#f97316" : "#fbbf24", fontFamily: "var(--fm)", letterSpacing: 1, background: s.when === "TODAY" ? "#2a1500" : "#1e1a00", padding: "2px 8px", borderRadius: 10 }}>{s.when}</span>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: s.when === "TODAY" ? "#b45716" : "#956100", fontFamily: "var(--fm)", letterSpacing: 1, background: s.when === "TODAY" ? "#fff0e4" : "#fff4d9", padding: "2px 8px", borderRadius: 10 }}>{s.when}</span>
                       <span style={{ fontWeight: 700, color: "var(--t1)", fontSize: 15 }}>{s.name}</span>
                     </div>
                     <div style={{ fontSize: 12, color: "var(--tm)" }}>{s.contact} · {s.phone}</div>
-                    {repCreditTotal > 0 && <div style={{ fontSize: 12, color: "#4ade80", marginTop: 4 }}>💰 {fmt$(repCreditTotal)} outstanding credits to claim</div>}
+                    {repCreditTotal > 0 && <div style={{ fontSize: 12, color: "#28745b", marginTop: 4 }}>{fmt$(repCreditTotal)} outstanding credits to claim</div>}
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: rg > 0 ? "#ff7070" : "#4ade80", fontFamily: "var(--fd)" }}>{rg}</div>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: rg > 0 ? "#b23b38" : "#28745b", fontFamily: "var(--fd)" }}>{rg}</div>
                     <div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>OPEN GAPS</div>
                   </div>
                 </div>
@@ -497,10 +486,10 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
                   style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0, cursor: "zoom-in" }} />
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}><Dot priority={g.priority} /><span style={{ fontWeight: 700, fontSize: 15, color: "var(--t1)" }}>{g.description}</span><Badge status={g.status} />{g.priority === "high" && <span style={{ fontSize: 10, color: "#ef4444", fontFamily: "var(--fm)", letterSpacing: 1 }}>HIGH PRIORITY</span>}</div>
-                <div style={{ fontSize: 12, color: "var(--tm)", marginBottom: 6, display: "flex", flexWrap: "wrap", gap: "4px 14px" }}><span>🏢 {sup?.name||"—"}</span><span>📍 {fmtLocation(g.aisle, g.bay)}</span><span>👤 {g.loggedBy}</span><span>🕐 {fmtDate(g.loggedAt)}</span></div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}><Dot priority={g.priority} /><span style={{ fontWeight: 700, fontSize: 15, color: "var(--t1)" }}>{g.description}</span><Badge status={g.status} />{g.priority === "high" && <span style={{ fontSize: 10, color: "#b23b38", fontFamily: "var(--fm)", letterSpacing: 1 }}>HIGH PRIORITY</span>}</div>
+                <div style={{ fontSize: 12, color: "var(--tm)", marginBottom: 6, display: "flex", flexWrap: "wrap", gap: "4px 14px" }}><span>{sup?.name||"—"}</span><span>{fmtLocation(g.aisle, g.bay)}</span><span>{g.loggedBy}</span><span>{fmtDate(g.loggedAt)}</span></div>
                 {g.notes && <div style={{ fontSize: 12, color: "var(--t2)", background: "var(--ib)", borderRadius: 6, padding: "6px 10px" }}>"{g.notes}"</div>}
-                {g.unavailableUntil && <div style={{ fontSize: 11, color: "#fbbf24", marginTop: 4 }}>📅 Expected back: {fmtDate(g.unavailableUntil)}</div>}
+                {g.unavailableUntil && <div style={{ fontSize: 11, color: "#956100", marginTop: 4 }}>Expected back: {fmtDate(g.unavailableUntil)}</div>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
                 {!isDeletionStatus && g.status !== "ordered" && (
@@ -512,12 +501,12 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
                 {!isDeletionStatus && (
                   deletionOpen === g.id ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                      <button onClick={() => { onResolve(g.id, "deletion_confirmed"); setDeletionOpen(null); }} style={{ background: "#1e0a30", color: "#c4b5fd", border: "1px solid #5a2a9a", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Confirmed</button>
-                      <button onClick={() => { onResolve(g.id, "deletion_followup"); setDeletionOpen(null); }} style={{ background: "#2a1500", color: "#f97316", border: "1px solid #7a3500", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Follow Up</button>
-                      <button onClick={() => setDeletionOpen(null)} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}>✕</button>
+                      <button onClick={() => { onResolve(g.id, "deletion_confirmed"); setDeletionOpen(null); }} style={{ background: "#f2ebf9", color: "#70549a", border: "1px solid #d8c6eb", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Confirmed</button>
+                      <button onClick={() => { onResolve(g.id, "deletion_followup"); setDeletionOpen(null); }} style={{ background: "#fff0e4", color: "#b45716", border: "1px solid #e9c2a2", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Follow Up</button>
+                      <button onClick={() => setDeletionOpen(null)} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}><Icon d={IC.x} size={14} /></button>
                     </div>
                   ) : (
-                    <button onClick={() => setDeletionOpen(g.id)} style={{ background: "#1e0a30", color: "#c4b5fd", border: "1px solid #5a2a9a", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Deletion</button>
+                    <button onClick={() => setDeletionOpen(g.id)} style={{ background: "#f2ebf9", color: "#70549a", border: "1px solid #d8c6eb", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Deletion</button>
                   )
                 )}
                 <button onClick={() => onDelete(g.id)} style={{ ...BD, padding: "5px 12px", fontSize: 12 }}>Delete</button>
@@ -531,7 +520,7 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
         <div onClick={() => setEnlargedImage(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}>
           <img src={enlargedImage} alt="" onClick={e => e.stopPropagation()}
             style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: 12, objectFit: "contain", boxShadow: "0 8px 40px rgba(0,0,0,0.8)", cursor: "default" }} />
-          <button onClick={() => setEnlargedImage(null)} style={{ position: "absolute", top: 20, right: 20, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 14, fontFamily: "var(--fb)" }}>✕ Close</button>
+          <button onClick={() => setEnlargedImage(null)} style={{ position: "absolute", top: 20, right: 20, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 14, fontFamily: "var(--fb)" }}>Close</button>
         </div>
       )}
     </div>
@@ -560,16 +549,16 @@ function CloseToCodeView({ items, suppliers, onAdd, onUpdateStatus, onDelete }) 
                 {alert && item.status === "active" && <div style={{ background: alert.bg, border: `1px solid ${alert.border}`, borderRadius: 8, padding: "6px 12px", marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon d={IC.bell} size={14} color={alert.color} /><span style={{ fontSize: 12, color: alert.color, fontWeight: 700 }}>{alert.label}</span></div>}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}><span style={{ fontWeight: 700, fontSize: 15, color: "var(--t1)" }}>{item.description}</span><Badge status={item.status} meta={CODE_STATUS_META} /></div>
                 <div style={{ fontSize: 12, color: "var(--tm)", marginBottom: 6, display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
-                  <span>📅 Use by: <strong style={{ color: days !== null && days <= 7 ? "#ff7070" : days !== null && days <= 14 ? "#fbbf24" : "var(--t2)" }}>{fmtDate(item.useByDate)}</strong></span>
-                  {days !== null && <span style={{ color: days <= 0 ? "#ff3030" : days <= 2 ? "#ff7070" : days <= 7 ? "#f97316" : "var(--tm)" }}>{days <= 0 ? "EXPIRED" : `${days} day${days === 1 ? "" : "s"} left`}</span>}
-                  {item.quantity && <span>📦 {item.quantity}</span>}
-                  <span>📍 {fmtLocation(item.aisle, item.bay)}</span>
-                  {sup && <span>🏢 {sup.name}</span>}
+                  <span>Use by: <strong style={{ color: days !== null && days <= 7 ? "#b23b38" : days !== null && days <= 14 ? "#956100" : "var(--t2)" }}>{fmtDate(item.useByDate)}</strong></span>
+                  {days !== null && <span style={{ color: days <= 0 ? "#ff3030" : days <= 2 ? "#b23b38" : days <= 7 ? "#b45716" : "var(--tm)" }}>{days <= 0 ? "EXPIRED" : `${days} day${days === 1 ? "" : "s"} left`}</span>}
+                  {item.quantity && <span>{item.quantity}</span>}
+                  <span>{fmtLocation(item.aisle, item.bay)}</span>
+                  {sup && <span>{sup.name}</span>}
                 </div>
                 {item.notes && <div style={{ fontSize: 12, color: "var(--t2)", background: "var(--ib)", borderRadius: 6, padding: "6px 10px" }}>"{item.notes}"</div>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-                {item.status === "active" && <><button onClick={() => onUpdateStatus(item.id, "marked_down")} style={{ ...BS, padding: "5px 12px", fontSize: 11, whiteSpace: "nowrap" }}>Mark Down</button><button onClick={() => onUpdateStatus(item.id, "returned")} style={{ ...BS, padding: "5px 12px", fontSize: 11 }}>Returned</button><button onClick={() => onUpdateStatus(item.id, "removed")} style={{ background: "#2a1500", color: "#f97316", border: "1px solid #7a3500", borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontFamily: "var(--fb)" }}>Remove</button></>}
+                {item.status === "active" && <><button onClick={() => onUpdateStatus(item.id, "marked_down")} style={{ ...BS, padding: "5px 12px", fontSize: 11, whiteSpace: "nowrap" }}>Mark Down</button><button onClick={() => onUpdateStatus(item.id, "returned")} style={{ ...BS, padding: "5px 12px", fontSize: 11 }}>Returned</button><button onClick={() => onUpdateStatus(item.id, "removed")} style={{ background: "#fff0e4", color: "#b45716", border: "1px solid #e9c2a2", borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontFamily: "var(--fb)" }}>Remove</button></>}
                 <button onClick={() => onDelete(item.id)} style={{ ...BD, padding: "5px 12px", fontSize: 11 }}>Delete</button>
               </div>
             </div>
@@ -607,10 +596,10 @@ function CreditSection({ type, credits, supplierId, onAdd, onUpdateStatus, onDel
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 600, color: "var(--t1)", fontSize: 14, marginBottom: 4 }}>{c.description}</div>
               <div style={{ fontSize: 12, color: "var(--tm)", display: "flex", flexWrap: "wrap", gap: "4px 12px" }}>
-                {c.quantity && <span>📦 {c.quantity}</span>}
-                {c.value && <span style={{ color: "#4ade80", fontWeight: 700 }}>💰 {fmt$(c.value)}</span>}
-                <span>📅 {fmtDate(c.dateRaised)}</span>
-                {c.refNumber && <span>🔖 Ref: {c.refNumber}</span>}
+                {c.quantity && <span>{c.quantity}</span>}
+                {c.value && <span style={{ color: "#28745b", fontWeight: 700 }}>{fmt$(c.value)}</span>}
+                <span>{fmtDate(c.dateRaised)}</span>
+                {c.refNumber && <span>Ref: {c.refNumber}</span>}
               </div>
               {c.notes && <div style={{ fontSize: 12, color: "var(--t2)", marginTop: 6, background: "var(--c)", borderRadius: 6, padding: "4px 8px" }}>"{c.notes}"</div>}
             </div>
@@ -621,7 +610,7 @@ function CreditSection({ type, credits, supplierId, onAdd, onUpdateStatus, onDel
                 {["pending","confirmed"].includes(c.status) && <button onClick={() => onUpdateStatus(c.id, "received")} style={{ ...BP, padding: "3px 8px", fontSize: 11 }}>Received</button>}
                 {["pending","confirmed"].includes(c.status) && <button onClick={() => onUpdateStatus(c.id, "disputed")} style={{ ...BD, padding: "3px 8px", fontSize: 11 }}>Disputed</button>}
                 {["received","disputed"].includes(c.status) && <button onClick={() => onUpdateStatus(c.id, "resolved")} style={{ ...BS, padding: "3px 8px", fontSize: 11 }}>Archive</button>}
-                <button onClick={() => onDelete(c.id)} style={{ ...BD, padding: "3px 8px", fontSize: 11 }}>✕</button>
+                <button onClick={() => onDelete(c.id)} style={{ ...BD, padding: "3px 8px", fontSize: 11 }}><Icon d={IC.x} size={14} /></button>
               </div>
             </div>
           </div>
@@ -636,7 +625,7 @@ function CreditSection({ type, credits, supplierId, onAdd, onUpdateStatus, onDel
         <div key={c.id} style={{ background: "var(--ib)", border: "1px solid var(--b)", borderRadius: 10, padding: "10px 14px", marginTop: 6, opacity: 0.5 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <div><div style={{ fontSize: 13, color: "var(--t2)" }}>{c.description}</div><div style={{ fontSize: 11, color: "var(--tm)" }}>{fmtDate(c.dateRaised)} {c.value && `· ${fmt$(c.value)}`}</div></div>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}><Badge status="resolved" meta={CREDIT_STATUS_META} /><button onClick={() => onDelete(c.id)} style={{ ...BD, padding: "3px 8px", fontSize: 11 }}>✕</button></div>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}><Badge status="resolved" meta={CREDIT_STATUS_META} /><button onClick={() => onDelete(c.id)} style={{ ...BD, padding: "3px 8px", fontSize: 11 }}><Icon d={IC.x} size={14} /></button></div>
           </div>
         </div>
       ))}
@@ -675,13 +664,13 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontWeight: 700, fontSize: 16, color: "var(--t1)" }}>{s.name}</span>
-                  {repWhen && <span style={{ fontSize: 10, fontWeight: 800, color: repWhen === "TODAY" ? "#f97316" : "#fbbf24", fontFamily: "var(--fm)", letterSpacing: 1, background: repWhen === "TODAY" ? "#2a1500" : "#1e1a00", padding: "2px 8px", borderRadius: 10 }}>REP {repWhen}</span>}
+                  {repWhen && <span style={{ fontSize: 10, fontWeight: 800, color: repWhen === "TODAY" ? "#b45716" : "#956100", fontFamily: "var(--fm)", letterSpacing: 1, background: repWhen === "TODAY" ? "#fff0e4" : "#fff4d9", padding: "2px 8px", borderRadius: 10 }}>REP {repWhen}</span>}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--tm)", marginTop: 2 }}>{s.visitDay} · <span style={{ textTransform: "capitalize" }}>{s.frequency}</span></div>
               </div>
               <div style={{ display: "flex", gap: 16, alignItems: "center", flexShrink: 0 }}>
-                {pendingTotal > 0 && <div style={{ textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: "#4ade80", fontFamily: "var(--fd)" }}>{fmt$(pendingTotal)}</div><div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>CREDITS</div></div>}
-                <div style={{ textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 800, color: og > 0 ? "#ff7070" : "#4ade80", fontFamily: "var(--fd)" }}>{og}</div><div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>GAPS</div></div>
+                {pendingTotal > 0 && <div style={{ textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: "#28745b", fontFamily: "var(--fd)" }}>{fmt$(pendingTotal)}</div><div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>CREDITS</div></div>}
+                <div style={{ textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 800, color: og > 0 ? "#b23b38" : "#28745b", fontFamily: "var(--fd)" }}>{og}</div><div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>GAPS</div></div>
                 <Icon d={IC.chev} size={16} color="var(--tm)" />
               </div>
             </div>
@@ -692,7 +681,7 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
                   {[["details","Rep Details"],["credits","Credits & Returns"]].map(([id, label]) => (
                     <button key={id} onClick={() => setTab(s.id, id)} style={{ background: "none", border: "none", borderBottom: `2px solid ${tab === id ? "var(--a)" : "transparent"}`, color: tab === id ? "var(--a)" : "var(--tm)", cursor: "pointer", padding: "12px 16px", fontSize: 13, fontWeight: tab === id ? 700 : 400, fontFamily: "var(--fb)", transition: "color .15s", marginBottom: -1 }}>
                       {label}
-                      {id === "credits" && pendingTotal > 0 && <span style={{ marginLeft: 6, background: "#0f2e1a", color: "#4ade80", border: "1px solid #1a5c30", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{fmt$(pendingTotal)}</span>}
+                      {id === "credits" && pendingTotal > 0 && <span style={{ marginLeft: 6, background: "#e7f2eb", color: "#28745b", border: "1px solid #b7dbc6", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{fmt$(pendingTotal)}</span>}
                     </button>
                   ))}
                   <div style={{ flex: 1 }} />
@@ -723,9 +712,9 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
                 {tab === "credits" && (
                   <div style={{ padding: "20px" }}>
                     {pendingTotal > 0 && (
-                      <div style={{ background: "#0f2e1a", border: "1px solid #1a5c30", borderRadius: 10, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: 13, color: "#4ade80" }}>💰 Total outstanding credits</span>
-                        <span style={{ fontSize: 20, fontWeight: 800, color: "#4ade80", fontFamily: "var(--fd)" }}>{fmt$(pendingTotal)}</span>
+                      <div style={{ background: "#e7f2eb", border: "1px solid #b7dbc6", borderRadius: 10, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 13, color: "#28745b" }}>Total outstanding credits</span>
+                        <span style={{ fontSize: 20, fontWeight: 800, color: "#28745b", fontFamily: "var(--fd)" }}>{fmt$(pendingTotal)}</span>
                       </div>
                     )}
                     {CREDIT_TYPES.map(type => (
@@ -770,13 +759,13 @@ function ReportsView({ gaps, suppliers, credits }) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
             <div style={{ fontWeight: 700, color: "var(--t1)", fontSize: 15 }}>{s.name}</div>
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-              {[["Total",s.total,"#a78bfa"],["Ordered",s.ordered,"#4ade80"],["Missed",s.missed,"#ff7070"],["Credits",fmt$(s.creditTotal),"#4ade80"]].map(([l,v,c]) => (
+              {[["Total",s.total,"#70549a"],["Ordered",s.ordered,"#28745b"],["Missed",s.missed,"#b23b38"],["Credits",fmt$(s.creditTotal),"#28745b"]].map(([l,v,c]) => (
                 <div key={l} style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: c, fontFamily: "var(--fd)" }}>{v}</div><div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)", letterSpacing: 1 }}>{l}</div></div>
               ))}
             </div>
           </div>
           <div style={{ marginTop: 10, height: 5, background: "var(--ib)", borderRadius: 3, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${s.total ? (s.ordered/s.total)*100 : 0}%`, background: "#4ade80", borderRadius: 3 }} />
+            <div style={{ height: "100%", width: `${s.total ? (s.ordered/s.total)*100 : 0}%`, background: "#28745b", borderRadius: 3 }} />
           </div>
         </Card>
       ))}
@@ -828,7 +817,7 @@ function SettingsView({ settings, depts, onSave, saving, onAddDept, onUpdateDept
               <input style={{ ...IS, width: 70 }} placeholder="Code" value={deptForm.code} onChange={e => setDeptForm(p => ({ ...p, code: e.target.value.toUpperCase().slice(0,3) }))} maxLength={3} />
               <input style={{ ...IS, flex: 1, minWidth: 120 }} placeholder="Label e.g. Meat" value={deptForm.label} onChange={e => setDeptForm(p => ({ ...p, label: e.target.value }))} />
               <button onClick={saveDept} style={{ ...BP, padding: "5px 12px", fontSize: 12 }}>Save</button>
-              <button onClick={() => setEditDept(null)} style={{ ...BS, padding: "5px 10px", fontSize: 12 }}>✕</button>
+              <button onClick={() => setEditDept(null)} style={{ ...BS, padding: "5px 10px", fontSize: 12 }}><Icon d={IC.x} size={14} /></button>
             </div>
           ) : (
             <>
@@ -882,7 +871,7 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
       <Field label="Photo — AI will describe the product">
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <button onClick={() => ref.current.click()} style={{ ...BS, display: "flex", alignItems: "center", gap: 6 }}><Icon d={IC.cam} size={14} /> {aiLoading ? "Analysing…" : "Take / Upload Photo"}</button>
-          {aiDone && <span style={{ fontSize: 12, color: "#4ade80" }}>✓ AI generated</span>}
+          {aiDone && <span style={{ fontSize: 12, color: "#28745b" }}>AI generated</span>}
           <input ref={ref} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handlePhoto} />
         </div>
         {f.imagePreview && <img src={f.imagePreview} alt="" style={{ marginTop: 10, width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 8 }} />}
@@ -1026,8 +1015,8 @@ function WeeklyBarChart({ data }) {
         const isToday = i === todayDow;
         return (
           <g key={i}>
-            <rect x={cx - bw / 2} y={y} width={bw} height={bh} rx="3" fill={isMax ? "#f97316" : "var(--a)"} opacity={isToday ? 1 : 0.7} />
-            {v > 0 && <text x={cx} y={y - 3} fill={isMax ? "#f97316" : "var(--tm)"} fontSize="7" textAnchor="middle">{v}</text>}
+            <rect x={cx - bw / 2} y={y} width={bw} height={bh} rx="3" fill={isMax ? "#b45716" : "var(--a)"} opacity={isToday ? 1 : 0.7} />
+            {v > 0 && <text x={cx} y={y - 3} fill={isMax ? "#b45716" : "var(--tm)"} fontSize="7" textAnchor="middle">{v}</text>}
             <text x={cx} y={H - 3} fill={isToday ? "var(--t2)" : "var(--tm)"} fontSize="8" textAnchor="middle" fontWeight={isToday ? "700" : "400"}>{DAY_LABELS[i]}</text>
           </g>
         );
@@ -1194,7 +1183,7 @@ function TheftItemsTab({ itemStats, locations, locReportCounts, onToggleResolved
         <div style={{ background: "var(--ib)", border: "1px solid var(--a)", borderRadius: 10, padding: "12px 14px", marginBottom: 10, display: "flex", gap: 8 }}>
           <input style={{ ...IS, flex: 1 }} placeholder="Item name e.g. Gillette Fusion Blades" autoFocus value={newItemName} onChange={e => setNewItemName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddItem()} />
           <button onClick={handleAddItem} disabled={!newItemName.trim()} style={{ ...BP, padding: "5px 14px", fontSize: 12 }}>Add</button>
-          <button onClick={() => { setAddingItem(false); setNewItemName(""); }} style={{ ...BS, padding: "5px 10px", fontSize: 12 }}>✕</button>
+          <button onClick={() => { setAddingItem(false); setNewItemName(""); }} style={{ ...BS, padding: "5px 10px", fontSize: 12 }}><Icon d={IC.x} size={14} /></button>
         </div>
       )}
 
@@ -1203,9 +1192,9 @@ function TheftItemsTab({ itemStats, locations, locReportCounts, onToggleResolved
       )}
 
       {itemStats.map(item => (
-        <div key={item.id} style={{ background: "var(--c)", border: `1px solid ${item.resolved ? "#1a5c30" : "var(--b)"}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, opacity: item.resolved ? 0.8 : 1 }}>
+        <div key={item.id} style={{ background: "var(--c)", border: `1px solid ${item.resolved ? "#b7dbc6" : "var(--b)"}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, opacity: item.resolved ? 0.8 : 1 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, color: item.resolved ? "#4ade80" : "var(--t1)", marginBottom: 2 }}>{item.name}{item.resolved ? " ✓" : ""}</div>
+            <div style={{ fontWeight: 700, color: item.resolved ? "#28745b" : "var(--t1)", marginBottom: 2 }}>{item.name}{item.resolved ? "" : ""}</div>
             <div style={{ fontSize: 11, color: "var(--tm)" }}>
               {item.count} incident{item.count !== 1 ? "s" : ""} total
               {item.lastDate && ` · Last: ${fmtDate(item.lastDate)}`}
@@ -1213,7 +1202,7 @@ function TheftItemsTab({ itemStats, locations, locReportCounts, onToggleResolved
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            <span style={{ background: item.resolved ? "#0f2e1a" : "#0f1e35", color: item.resolved ? "#4ade80" : "#60a5fa", border: `1px solid ${item.resolved ? "#1a5c30" : "#1a3a6a"}`, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: "uppercase", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>
+            <span style={{ background: item.resolved ? "#e7f2eb" : "#eaf2f9", color: item.resolved ? "#28745b" : "#28689a", border: `1px solid ${item.resolved ? "#b7dbc6" : "#b8d4e8"}`, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: "uppercase", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>
               {item.resolved ? "Resolved" : "Active"}
             </span>
             <button onClick={() => onToggleResolved(item.id, !item.resolved)} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}>
@@ -1234,7 +1223,7 @@ function TheftItemsTab({ itemStats, locations, locReportCounts, onToggleResolved
         <div style={{ background: "var(--ib)", border: "1px solid var(--a)", borderRadius: 10, padding: "12px 14px", marginBottom: 12, display: "flex", gap: 8 }}>
           <input style={{ ...IS, flex: 1 }} placeholder="Location name e.g. Near Register" autoFocus value={newLocName} onChange={e => setNewLocName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddLoc()} />
           <button onClick={handleAddLoc} disabled={!newLocName.trim()} style={{ ...BP, padding: "5px 14px", fontSize: 12 }}>Add</button>
-          <button onClick={() => { setAddingLoc(false); setNewLocName(""); }} style={{ ...BS, padding: "5px 10px", fontSize: 12 }}>✕</button>
+          <button onClick={() => { setAddingLoc(false); setNewLocName(""); }} style={{ ...BS, padding: "5px 10px", fontSize: 12 }}><Icon d={IC.x} size={14} /></button>
         </div>
       )}
 
@@ -1250,7 +1239,7 @@ function TheftItemsTab({ itemStats, locations, locReportCounts, onToggleResolved
             <button onClick={() => {
               if (locReportCounts[loc.id]) { alert(`Cannot delete "${loc.name}" — it has ${locReportCounts[loc.id]} report(s) linked to it.`); return; }
               onDeleteLocation(loc.id);
-            }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tm)", padding: "0 2px", fontSize: 14, lineHeight: 1 }}>✕</button>
+            }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tm)", padding: "0 2px", fontSize: 14, lineHeight: 1 }}><Icon d={IC.x} size={14} /></button>
           </div>
         ))}
       </div>
@@ -1278,7 +1267,7 @@ function TheftChartsTab({ incidents, metric, setMetric, monthTab, setMonthTab })
         <span style={{ fontSize: 11, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1 }}>Show:</span>
         <div style={{ display: "flex", border: "1px solid var(--b)", borderRadius: 7, overflow: "hidden", fontSize: 12, fontWeight: 700 }}>
           {[["incidents","Incidents"],["quantity","Quantity"]].map(([val, label]) => (
-            <button key={val} onClick={() => setMetric(val)} style={{ padding: "5px 14px", background: metric === val ? "var(--a)" : "transparent", color: metric === val ? "#000" : "var(--tm)", border: "none", cursor: "pointer", fontFamily: "var(--fb)", fontWeight: 700, fontSize: 12, transition: "background .15s" }}>
+            <button key={val} onClick={() => setMetric(val)} style={{ padding: "5px 14px", background: metric === val ? "var(--a)" : "transparent", color: metric === val ? "#fff" : "var(--tm)", border: "none", cursor: "pointer", fontFamily: "var(--fb)", fontWeight: 700, fontSize: 12, transition: "background .15s" }}>
               {label}
             </button>
           ))}
@@ -1305,7 +1294,7 @@ function TheftChartsTab({ incidents, metric, setMetric, monthTab, setMonthTab })
           <div style={{ fontWeight: 700, color: "var(--t1)" }}>{now.toLocaleDateString("en-AU", { month: "long", year: "numeric" })}</div>
           <div style={{ display: "flex", gap: 6 }}>
             {[["totals","Weekly Totals"],["breakdown","Day Breakdown"]].map(([val, label]) => (
-              <button key={val} onClick={() => setMonthTab(val)} style={{ padding: "4px 10px", background: monthTab === val ? "var(--a)" : "transparent", color: monthTab === val ? "#000" : "var(--tm)", border: `1px solid ${monthTab === val ? "var(--a)" : "var(--b)"}`, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "var(--fb)" }}>
+              <button key={val} onClick={() => setMonthTab(val)} style={{ padding: "4px 10px", background: monthTab === val ? "var(--a)" : "transparent", color: monthTab === val ? "#fff" : "var(--tm)", border: `1px solid ${monthTab === val ? "var(--a)" : "var(--b)"}`, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "var(--fb)" }}>
                 {label}
               </button>
             ))}
@@ -1508,8 +1497,8 @@ function TheftIncidentsList({ incidents, itemMap, locMap, itemResolvedMap, items
                 {inc.notes && <div style={{ fontSize: 11, color: "var(--t2)", background: "var(--ib)", borderRadius: 6, padding: "4px 8px", marginTop: 4 }}>"{inc.notes}"</div>}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                <span style={{ background: resolved ? "#0f2e1a" : "#0f1e35", color: resolved ? "#4ade80" : "#60a5fa", border: `1px solid ${resolved ? "#1a5c30" : "#1a3a6a"}`, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>
-                  {resolved ? "Resolved ✓" : "Active"}
+                <span style={{ background: resolved ? "#e7f2eb" : "#eaf2f9", color: resolved ? "#28745b" : "#28689a", border: `1px solid ${resolved ? "#b7dbc6" : "#b8d4e8"}`, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>
+                  {resolved ? "Resolved" : "Active"}
                 </span>
                 <button onClick={() => onDelete(inc.id)} style={{ ...BD, padding: "4px 10px", fontSize: 11 }}>
                   <Icon d={IC.trash} size={13} />
@@ -1577,8 +1566,8 @@ function HighTheftView({ incidents, items, locations, numAisles, numBays, depts,
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
         <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>This Week</div><div style={{ fontSize: 28, fontWeight: 700, color: "var(--t1)", lineHeight: 1 }}>{thisWeekCount}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>incidents</div></Card>
-        <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Top Item</div><div style={{ fontSize: 14, fontWeight: 700, color: "#f97316", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{topItem?.name || "—"}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>{topItemId ? `${itemCounts[topItemId]} incidents` : "no data"}</div></Card>
-        <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Resolved</div><div style={{ fontSize: 28, fontWeight: 700, color: "#4ade80", lineHeight: 1 }}>{resolvedCount}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>items solved</div></Card>
+        <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Top Item</div><div style={{ fontSize: 14, fontWeight: 700, color: "#b45716", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{topItem?.name || "—"}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>{topItemId ? `${itemCounts[topItemId]} incidents` : "no data"}</div></Card>
+        <Card><div style={{ fontSize: 10, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Resolved</div><div style={{ fontSize: 28, fontWeight: 700, color: "#28745b", lineHeight: 1 }}>{resolvedCount}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 2 }}>items solved</div></Card>
       </div>
 
       <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "1px solid var(--b)" }}>
@@ -1717,8 +1706,8 @@ export default function ShelfAlert() {
   const handleAddGap = async (form) => {
     const body = { supplier_id: form.supplierId, description: form.description.trim(), aisle: form.aisle || null, bay: form.bay || null, priority: form.priority, status: "open", notes: form.notes || "", image_url: form.imageUrl || null, logged_by: session.displayName, logged_at: new Date().toISOString() };
     const res = await sb.insert("gaps", session.token, body);
-    if (res && Array.isArray(res) && res[0]) { setGaps(g => [mapGap(res[0]), ...g]); toast$("✓ Gap logged"); }
-    else if (res && res.id) { setGaps(g => [mapGap(res), ...g]); toast$("✓ Gap logged"); }
+    if (res && Array.isArray(res) && res[0]) { setGaps(g => [mapGap(res[0]), ...g]); toast$("Gap logged"); }
+    else if (res && res.id) { setGaps(g => [mapGap(res), ...g]); toast$("Gap logged"); }
     else { toast$("Failed to save gap — check console", "error"); }
     setShowGapForm(false);
   };
@@ -1727,7 +1716,7 @@ export default function ShelfAlert() {
   const handleResolveConfirm = async (gapId, status, date) => {
     const res = await sb.update("gaps", session.token, { id: gapId }, { status, resolved_at: status === "ordered" ? new Date().toISOString() : null, unavailable_until: date || null });
     const row = Array.isArray(res) ? res[0] : res;
-    if (row?.id) { setGaps(g => g.map(gap => gap.id === gapId ? mapGap(row) : gap)); toast$(`✓ ${STATUS_META[status].label}`); }
+    if (row?.id) { setGaps(g => g.map(gap => gap.id === gapId ? mapGap(row) : gap)); toast$(`${STATUS_META[status].label}`); }
     setResolveTarget(null);
   };
   const handleDeleteGap = async (id) => { await supabase.from("gaps").delete().eq("id", id); setGaps(g => g.filter(gap => gap.id !== id)); toast$("Gap removed"); };
@@ -1736,14 +1725,14 @@ export default function ShelfAlert() {
     const body = { description: form.description.trim(), use_by_date: form.useByDate, quantity: form.quantity || null, aisle: form.aisle || null, bay: form.bay || null, supplier_id: form.supplierId || null, notes: form.notes || "", status: "active", logged_by: session.displayName, logged_at: new Date().toISOString() };
     const res = await sb.insert("close_to_code", session.token, body);
     const row = Array.isArray(res) ? res[0] : res;
-    if (row?.id) { setCodeItems(c => [...c, mapCode(row)].sort((a,b) => new Date(a.useByDate) - new Date(b.useByDate))); toast$("✓ Item added"); }
+    if (row?.id) { setCodeItems(c => [...c, mapCode(row)].sort((a,b) => new Date(a.useByDate) - new Date(b.useByDate))); toast$("Item added"); }
     else toast$("Failed to save", "error");
     setShowCodeForm(false);
   };
   const handleUpdateCodeStatus = async (id, status) => {
     const res = await sb.update("close_to_code", session.token, { id }, { status });
     const row = Array.isArray(res) ? res[0] : res;
-    if (row?.id) { setCodeItems(c => c.map(i => i.id === id ? mapCode(row) : i)); toast$(`✓ ${CODE_STATUS_META[status].label}`); }
+    if (row?.id) { setCodeItems(c => c.map(i => i.id === id ? mapCode(row) : i)); toast$(`${CODE_STATUS_META[status].label}`); }
   };
   const handleDeleteCode = async (id) => { await sb.remove("close_to_code", session.token, { id }); setCodeItems(c => c.filter(i => i.id !== id)); toast$("Item removed"); };
 
@@ -1751,13 +1740,13 @@ export default function ShelfAlert() {
     const body = { supplier_id: form.supplierId, type: form.type, description: form.description.trim(), quantity: form.quantity || null, value: form.value ? parseFloat(form.value) : null, date_raised: form.dateRaised, ref_number: form.refNumber || null, notes: form.notes || "", status: "pending", logged_by: session.displayName };
     const res = await sb.insert("supplier_credits", session.token, body);
     const row = Array.isArray(res) ? res[0] : res;
-    if (row?.id) { setCredits(c => [mapCredit(row), ...c]); toast$("✓ Credit logged"); }
+    if (row?.id) { setCredits(c => [mapCredit(row), ...c]); toast$("Credit logged"); }
     else toast$("Failed to save", "error");
   };
   const handleUpdateCreditStatus = async (id, status) => {
     const res = await sb.update("supplier_credits", session.token, { id }, { status, resolved_at: status === "resolved" ? new Date().toISOString() : null });
     const row = Array.isArray(res) ? res[0] : res;
-    if (row?.id) { setCredits(c => c.map(cr => cr.id === id ? mapCredit(row) : cr)); toast$(`✓ ${CREDIT_STATUS_META[status].label}`); }
+    if (row?.id) { setCredits(c => c.map(cr => cr.id === id ? mapCredit(row) : cr)); toast$(`${CREDIT_STATUS_META[status].label}`); }
   };
   const handleDeleteCredit = async (id) => { await supabase.from("supplier_credits").delete().eq("id", id); setCredits(c => c.filter(cr => cr.id !== id)); toast$("Credit removed"); };
 
@@ -1766,12 +1755,12 @@ export default function ShelfAlert() {
     if (editSup) {
       const res = await sb.update("suppliers", session.token, { id: editSup.id }, body);
       const row = Array.isArray(res) ? res[0] : res;
-      if (row?.id) { setSuppliers(s => s.map(sup => sup.id === editSup.id ? mapSupplier(row) : sup)); toast$("✓ Supplier updated"); }
+      if (row?.id) { setSuppliers(s => s.map(sup => sup.id === editSup.id ? mapSupplier(row) : sup)); toast$("Supplier updated"); }
       else toast$("Failed to update", "error");
     } else {
       const res = await sb.insert("suppliers", session.token, body);
       const row = Array.isArray(res) ? res[0] : res;
-      if (row?.id) { setSuppliers(s => [...s, mapSupplier(row)].sort((a,b) => a.name.localeCompare(b.name))); toast$("✓ Supplier added"); }
+      if (row?.id) { setSuppliers(s => [...s, mapSupplier(row)].sort((a,b) => a.name.localeCompare(b.name))); toast$("Supplier added"); }
       else toast$("Failed to save — check Supabase connection", "error");
     }
     setEditSup(null); setShowSupForm(false);
@@ -1787,7 +1776,7 @@ export default function ShelfAlert() {
       const { data } = await supabase.from("store_settings").insert(body).select().single();
       if (data?.id) form = { ...form, id: data.id };
     }
-    setSettings(form); toast$("✓ Settings saved"); setSaving(false);
+    setSettings(form); toast$("Settings saved"); setSaving(false);
   };
 
   const handleAddDept = async (dept) => {
@@ -1795,14 +1784,14 @@ export default function ShelfAlert() {
       .insert({ code: dept.code.toUpperCase().trim(), label: dept.label.trim() })
       .select().single();
     if (error) { console.error("Dept insert error:", error); toast$("Failed to add department", "error"); return; }
-    if (data) { setDepts(d => [...d, mapDept(data)].sort((a,b) => a.code.localeCompare(b.code))); toast$("✓ Department added"); }
+    if (data) { setDepts(d => [...d, mapDept(data)].sort((a,b) => a.code.localeCompare(b.code))); toast$("Department added"); }
   };
   const handleUpdateDept = async (id, dept) => {
     const { data, error } = await supabase.from("departments")
       .update({ code: dept.code.toUpperCase().trim(), label: dept.label.trim() })
       .eq("id", id).select().single();
     if (error) { console.error("Dept update error:", error); toast$("Failed to update", "error"); return; }
-    if (data) { setDepts(d => d.map(dp => dp.id === id ? mapDept(data) : dp)); toast$("✓ Department updated"); }
+    if (data) { setDepts(d => d.map(dp => dp.id === id ? mapDept(data) : dp)); toast$("Department updated"); }
   };
   const handleDeleteDept = async (id) => {
     await supabase.from("departments").delete().eq("id", id);
@@ -1829,7 +1818,7 @@ export default function ShelfAlert() {
     const res = await supabase.from("theft_incidents").insert(body).select().single();
     if (res.error || !res.data) { toast$("Failed to log incident", "error"); return; }
     setTheftIncidents(prev => [mapTheftIncident(res.data), ...prev]);
-    toast$("✓ Incident logged");
+    toast$("Incident logged");
   };
 
   const handleToggleTheftItemResolved = async (id, resolved) => {
@@ -1837,14 +1826,14 @@ export default function ShelfAlert() {
     const res = await supabase.from("theft_items").update(body).eq("id", id).select().single();
     if (res.error || !res.data) { toast$("Failed to update", "error"); return; }
     setTheftItems(prev => prev.map(i => i.id === id ? mapTheftItem(res.data) : i));
-    toast$(resolved ? "✓ Marked resolved" : "✓ Reopened");
+    toast$(resolved ? "Marked resolved" : "Reopened");
   };
 
   const handleAddTheftItem = async (name) => {
     const res = await supabase.from("theft_items").insert({ name }).select().single();
     if (res.error || !res.data) { toast$("Failed to add item", "error"); return; }
     setTheftItems(prev => [...prev, mapTheftItem(res.data)]);
-    toast$("✓ Item added");
+    toast$("Item added");
   };
 
   const handleDeleteTheftIncident = async (id) => {
@@ -1858,7 +1847,7 @@ export default function ShelfAlert() {
     const res = await supabase.from("theft_locations").insert({ name }).select().single();
     if (res.error || !res.data) { toast$("Failed to add location", "error"); return; }
     setTheftLocations(prev => [...prev, mapTheftLocation(res.data)]);
-    toast$("✓ Location added");
+    toast$("Location added");
   };
 
   const handleDeleteTheftLocation = async (id) => {
@@ -1873,7 +1862,7 @@ export default function ShelfAlert() {
     setNotifs(n => n.filter(notif => notif.id !== id));
   };
 
-  if (!authReady) return (<><style>{CSS}</style><div style={{ minHeight: "100vh", background: "#0a0c0f", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 24, height: 24, border: "2px solid #1e2430", borderTopColor: "#00e5b0", borderRadius: "50%", animation: "spin .7s linear infinite" }} /></div></>);
+  if (!authReady) return (<><style>{CSS}</style><div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 24, height: 24, border: "2px solid var(--b)", borderTopColor: "var(--a)", borderRadius: "50%", animation: "spin .7s linear infinite" }} /></div></>);
   if (!session) return (<><style>{CSS}</style><LoginScreen onLogin={handleLogin} /></>);
 
   const urgentCodeCount = codeItems.filter(c => c.status === "active" && getCodeAlert(c.useByDate)).length;
@@ -1895,9 +1884,9 @@ export default function ShelfAlert() {
               <button key={n.id} onClick={() => setView(n.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "none", background: view === n.id ? "var(--ad)" : "transparent", color: view === n.id ? "var(--a)" : "var(--tm)", cursor: "pointer", fontSize: 14, fontFamily: "var(--fb)", fontWeight: view === n.id ? 700 : 400, marginBottom: 2, transition: "background .15s, color .15s", textAlign: "left" }}>
                 <Icon d={n.icon} size={16} color={view === n.id ? "var(--a)" : "var(--tm)"} />
                 {n.label}
-                {n.id === "dashboard" && totalAlerts > 0 && <span style={{ marginLeft: "auto", background: "#ef4444", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{totalAlerts}</span>}
+                {n.id === "dashboard" && totalAlerts > 0 && <span style={{ marginLeft: "auto", background: "#b23b38", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{totalAlerts}</span>}
                 {n.id === "gaps" && openGapCount > 0 && <span style={{ marginLeft: "auto", background: "#3b82f6", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{openGapCount}</span>}
-                {n.id === "code" && urgentCodeCount > 0 && <span style={{ marginLeft: "auto", background: "#f97316", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{urgentCodeCount}</span>}
+                {n.id === "code" && urgentCodeCount > 0 && <span style={{ marginLeft: "auto", background: "#b45716", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{urgentCodeCount}</span>}
               </button>
             ))}
           </nav>
@@ -1945,9 +1934,9 @@ export default function ShelfAlert() {
           <button key={n.id} onClick={() => setView(n.id)} className={`mobile-nav-btn${view === n.id ? " active" : ""}`}>
             <Icon d={n.icon} size={20} color={view === n.id ? "var(--a)" : "var(--tm)"} />
             <span style={{ fontSize: 9, marginTop: 2, fontFamily: "var(--fm)" }}>{n.label}</span>
-            {n.id === "dashboard" && totalAlerts > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "#ef4444", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{totalAlerts}</span>}
+            {n.id === "dashboard" && totalAlerts > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "#b23b38", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{totalAlerts}</span>}
             {n.id === "gaps" && openGapCount > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "#3b82f6", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{openGapCount}</span>}
-            {n.id === "code" && urgentCodeCount > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "#f97316", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{urgentCodeCount}</span>}
+            {n.id === "code" && urgentCodeCount > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "#b45716", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{urgentCodeCount}</span>}
           </button>
         ))}
       </nav>
@@ -1964,10 +1953,10 @@ export default function ShelfAlert() {
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');
-  :root{--bg:#0a0c0f;--s:#0f1217;--c:#131720;--b:#1e2430;--ib:#0d1018;--a:#00e5b0;--ad:rgba(0,229,176,0.08);--t1:#e8edf5;--t2:#9ba8bb;--tm:#5a6478;--fd:'Syne',sans-serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;}
+  :root{--bg:#f7f7f2;--s:#ffffff;--c:#ffffff;--b:#dce3dc;--ib:#f3f6f2;--a:#28745b;--ad:#e7f2eb;--t1:#24302b;--t2:#526159;--tm:#69786e;--fd:'Syne',sans-serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;}
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--t1);}
-  input,select,textarea{color-scheme:dark;transition:border-color .2s;}
+  input,select,textarea{color-scheme:light;transition:border-color .2s;}
   input:focus,select:focus,textarea:focus{border-color:var(--a)!important;outline:none;}
   ::-webkit-scrollbar{width:6px;height:6px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--b);border-radius:3px;}
   @keyframes spin{to{transform:rotate(360deg);}}
