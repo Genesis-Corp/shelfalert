@@ -361,10 +361,11 @@ function LoginScreen({ onLogin }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onDismissNotif }) {
-  const today = new Intl.DateTimeFormat("en-AU", { weekday: "long" }).format(new Date());
-  const tmrw  = new Intl.DateTimeFormat("en-AU", { weekday: "long" }).format(new Date(Date.now() + 86400000));
+function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onDismissNotif, onLogGap, onViewGaps, timezone }) {
+  const today = new Intl.DateTimeFormat("en-AU", { weekday: "long", timeZone: timezone }).format(new Date());
+  const tmrw  = new Intl.DateTimeFormat("en-AU", { weekday: "long", timeZone: timezone }).format(new Date(Date.now() + 86400000));
   const open = gaps.filter(g => g.status !== "ordered");
+  const priorityGaps = open.filter(g => g.priority === "high" || g.status === "missed");
   const urgentCode = codeItems.filter(c => c.status === "active" && getCodeAlert(c.useByDate));
   const pendingCredits = credits.filter(c => ["pending","confirmed"].includes(c.status));
   const pendingTotal = pendingCredits.reduce((sum, c) => sum + (parseFloat(c.value) || 0), 0);
@@ -372,58 +373,19 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 24 }}>
-        {[["Open Gaps", open.length, "var(--info)", false], ["Near Code", urgentCode.length, "var(--orange)", false], ["Credits", fmt$(pendingTotal), "var(--positive)", true], ["Suppliers", suppliers.length, "var(--purple)", false]].map(([l,v,c,small]) => (
-          <Card key={l}><div style={{ fontSize: small ? 20 : 32, fontWeight: 800, color: c, fontFamily: "var(--fd)", lineHeight: 1 }}>{v}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 4, textTransform: "uppercase", letterSpacing: 1, fontFamily: "var(--fm)" }}>{l}</div></Card>
-        ))}
+      <div className="today-intro" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
+        <div>
+          <h2 style={{ fontSize: 21, lineHeight: 1.2, color: "var(--t1)", margin: 0 }}>What needs attention</h2>
+          <p style={{ color: "var(--t2)", fontSize: 14, marginTop: 5 }}>Rep visits, urgent dates and open gaps for your store.</p>
+        </div>
+        <button type="button" onClick={onLogGap} style={{ ...BP, display: "flex", alignItems: "center", gap: 8, minHeight: 44 }}><Icon d={IC.plus} size={17} /> Log gap</button>
       </div>
-
-      {urgentCode.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Close to Code Alerts</h3>
-          {urgentCode.map(c => { const alert = getCodeAlert(c.useByDate); return (
-            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, background: alert.bg, border: `1px solid ${alert.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 8 }}>
-              <Icon d={IC.code} size={16} color={alert.color} />
-              <div style={{ flex: 1 }}><div style={{ fontSize: 13, color: "var(--t1)", fontWeight: 600 }}>{c.description}</div><div style={{ fontSize: 11, color: alert.color, marginTop: 2 }}>{alert.label} · Use by {fmtDate(c.useByDate)}</div></div>
-              <div style={{ fontSize: 11, color: "var(--tm)", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>{fmtLocation(c.aisle, c.bay)}</div>
-            </div>
-          ); })}
-        </div>
+      {repSchedule.length === 0 && urgentCode.length === 0 && notifs.filter(n => !n.read).length === 0 && (
+        <Card style={{ marginBottom: 24, background: "var(--positive-bg)", borderColor: "var(--positive-border)" }}>
+          <strong style={{ color: "var(--t1)", fontSize: 15 }}>No scheduled alerts right now</strong>
+          <p style={{ color: "var(--t2)", marginTop: 4, fontSize: 13 }}>Use Log gap to record an item when you find an empty shelf.</p>
+        </Card>
       )}
-
-      {notifs.filter(n => !n.read).length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Alerts</h3>
-          {notifs.filter(n => !n.read).map(n => (
-            <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 12, background: n.type === "urgent" ? "var(--orange-bg)" : n.type === "warning" ? "var(--warning-bg)" : "var(--purple-bg)", border: `1px solid ${n.type === "urgent" ? "var(--orange-border)" : n.type === "warning" ? "var(--warning-border)" : "var(--info-border)"}`, borderRadius: 10, padding: "12px 16px", marginBottom: 8 }}>
-              <Icon d={IC.bell} size={16} color={n.type === "urgent" ? "var(--orange)" : n.type === "warning" ? "var(--warning)" : "var(--info)"} />
-              <span style={{ flex: 1, fontSize: 13, color: "var(--t2)" }}>{n.text}</span>
-              <button onClick={() => onDismissNotif(n.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tm)", padding: 2 }}><Icon d={IC.x} size={13} /></button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Recent Gaps</h3>
-      {gaps.length === 0 && <div style={{ textAlign: "center", color: "var(--tm)", padding: 32, fontSize: 14 }}>No gaps logged yet</div>}
-      {gaps.slice(0, 5).map(g => {
-        const sup = suppliers.find(s => s.id === g.supplierId);
-        return (
-          <Card key={g.id} style={{ marginBottom: 8 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}><Dot priority={g.priority} /><span style={{ fontWeight: 600, fontSize: 14, color: "var(--t1)" }}>{g.description}</span></div>
-                <div style={{ fontSize: 12, color: "var(--tm)" }}>{sup?.name} · {fmtLocation(g.aisle, g.bay)} · {g.loggedBy}</div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
-                <Badge status={g.status} />
-                {g.status !== "ordered" && <div style={{ display: "flex", gap: 6 }}><button onClick={() => onResolve(g.id, "ordered")} style={{ ...BP, padding: "4px 10px", fontSize: 11 }}>Ordered</button><button onClick={() => onResolve(g.id, "unavailable")} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}>Unavail.</button></div>}
-              </div>
-            </div>
-          </Card>
-        );
-      })}
-
       {repSchedule.length > 0 && (
         <div style={{ marginTop: 24, marginBottom: 24 }}>
           <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Rep Schedule</h3>
@@ -451,6 +413,79 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
           })}
         </div>
       )}
+
+      {urgentCode.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Close to Code Alerts</h3>
+          {urgentCode.map(c => { const alert = getCodeAlert(c.useByDate); return (
+            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, background: alert.bg, border: `1px solid ${alert.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 8 }}>
+              <Icon d={IC.code} size={16} color={alert.color} />
+              <div style={{ flex: 1 }}><div style={{ fontSize: 13, color: "var(--t1)", fontWeight: 600 }}>{c.description}</div><div style={{ fontSize: 11, color: alert.color, marginTop: 2 }}>{alert.label} · Use by {fmtDate(c.useByDate)}</div></div>
+              <div style={{ fontSize: 11, color: "var(--tm)", fontFamily: "var(--fm)", whiteSpace: "nowrap" }}>{fmtLocation(c.aisle, c.bay)}</div>
+            </div>
+          ); })}
+        </div>
+      )}
+
+      {priorityGaps.length > 0 && (
+        <section style={{ marginBottom: 24 }} aria-label="Priority gaps">
+          <h3 style={{ fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Priority gaps</h3>
+          {priorityGaps.slice(0, 5).map(g => (
+            <Card key={g.id} style={{ marginBottom: 8, borderColor: "var(--danger-border)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                <div><strong style={{ color: "var(--t1)" }}>{g.description}</strong><div style={{ color: "var(--t2)", fontSize: 12, marginTop: 3 }}>{suppliers.find(s => s.id === g.supplierId)?.name || "Unknown supplier"} · {fmtLocation(g.aisle, g.bay)}</div></div>
+                <Badge status={g.status} />
+              </div>
+            </Card>
+          ))}
+          {priorityGaps.length > 5 && <button type="button" onClick={onViewGaps} style={{ ...BS, padding: "6px 10px", fontSize: 12 }}>View all {priorityGaps.length} priority gaps</button>}
+        </section>
+      )}
+
+      {notifs.filter(n => !n.read).length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Alerts</h3>
+          {notifs.filter(n => !n.read).map(n => (
+            <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 12, background: n.type === "urgent" ? "var(--orange-bg)" : n.type === "warning" ? "var(--warning-bg)" : "var(--purple-bg)", border: `1px solid ${n.type === "urgent" ? "var(--orange-border)" : n.type === "warning" ? "var(--warning-border)" : "var(--info-border)"}`, borderRadius: 10, padding: "12px 16px", marginBottom: 8 }}>
+              <Icon d={IC.bell} size={16} color={n.type === "urgent" ? "var(--orange)" : n.type === "warning" ? "var(--warning)" : "var(--info)"} />
+              <span style={{ flex: 1, fontSize: 13, color: "var(--t2)" }}>{n.text}</span>
+              <button onClick={() => onDismissNotif(n.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tm)", padding: 2 }}><Icon d={IC.x} size={13} /></button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10 }}>
+        <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2 }}>Recent Gaps</h3>
+        <button type="button" onClick={onViewGaps} style={{ ...BS, padding: "6px 10px", fontSize: 12 }}>View all gaps</button>
+      </div>
+      {gaps.length === 0 && <div style={{ textAlign: "center", color: "var(--tm)", padding: 32, fontSize: 14 }}>No gaps logged yet</div>}
+      {gaps.slice(0, 5).map(g => {
+        const sup = suppliers.find(s => s.id === g.supplierId);
+        return (
+          <Card key={g.id} style={{ marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}><Dot priority={g.priority} /><span style={{ fontWeight: 600, fontSize: 14, color: "var(--t1)" }}>{g.description}</span></div>
+                <div style={{ fontSize: 12, color: "var(--tm)" }}>{sup?.name} · {fmtLocation(g.aisle, g.bay)} · {g.loggedBy}</div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+                <Badge status={g.status} />
+                {g.status !== "ordered" && <div style={{ display: "flex", gap: 6 }}><button onClick={() => onResolve(g.id, "ordered")} style={{ ...BP, padding: "4px 10px", fontSize: 11 }}>Ordered</button><button onClick={() => onResolve(g.id, "unavailable")} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}>Unavail.</button></div>}
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+
+
+      <h3 style={{ fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 1, marginTop: 30, marginBottom: 10 }}>Store overview</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 24 }}>
+        {[["Open Gaps", open.length, "var(--info)", false], ["Near Code", urgentCode.length, "var(--orange)", false], ["Credits", fmt$(pendingTotal), "var(--positive)", true], ["Suppliers", suppliers.length, "var(--purple)", false]].map(([l,v,c,small]) => (
+          <Card key={l}><div style={{ fontSize: small ? 20 : 32, fontWeight: 800, color: c, fontFamily: "var(--fd)", lineHeight: 1 }}>{v}</div><div style={{ fontSize: 11, color: "var(--tm)", marginTop: 4, textTransform: "uppercase", letterSpacing: 1, fontFamily: "var(--fm)" }}>{l}</div></Card>
+        ))}
+      </div>
+
     </div>
   );
 }
@@ -1594,7 +1629,7 @@ function HighTheftView({ incidents, items, locations, numAisles, numBays, depts,
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────
 const NAV = [
-  { id: "dashboard", label: "Dashboard", icon: IC.home },
+  { id: "dashboard", label: "Today", icon: IC.home },
   { id: "gaps",      label: "Gaps",      icon: IC.gap },
   { id: "code",      label: "Near Code", icon: IC.code },
   { id: "suppliers", label: "Suppliers", icon: IC.sup },
@@ -1919,11 +1954,11 @@ export default function ShelfAlert() {
             <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
                 <h1 style={{ fontFamily: "var(--fd)", fontSize: 26, fontWeight: 900, color: "var(--t1)", letterSpacing: -0.5, margin: 0 }}>{NAV.find(n => n.id === view)?.label}</h1>
-                <div style={{ fontSize: 12, color: "var(--tm)", marginTop: 3, fontFamily: "var(--fm)" }}>{new Date().toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · {settings.timezone}</div>
+                <div style={{ fontSize: 12, color: "var(--tm)", marginTop: 3, fontFamily: "var(--fm)" }}>{new Date().toLocaleDateString("en-AU", { timeZone: settings.timezone, weekday: "long", day: "numeric", month: "long", year: "numeric" })} · {settings.timezone}</div>
               </div>
               {dataLoading && <Spin />}
             </div>
-            {view === "dashboard" && <Dashboard gaps={gaps} suppliers={suppliers} codeItems={codeItems} credits={credits} notifs={notifs} onResolve={handleResolve} onDismissNotif={handleDismissNotif} />}
+            {view === "dashboard" && <Dashboard gaps={gaps} suppliers={suppliers} codeItems={codeItems} credits={credits} notifs={notifs} onResolve={handleResolve} onDismissNotif={handleDismissNotif} onLogGap={() => setShowGapForm(true)} onViewGaps={() => setView("gaps")} timezone={settings.timezone} />}
             {view === "gaps"      && <GapsView gaps={gaps} suppliers={suppliers} onAdd={() => setShowGapForm(true)} onResolve={handleResolve} onDelete={handleDeleteGap} />}
             {view === "code"      && <CloseToCodeView items={codeItems} suppliers={suppliers} onAdd={() => setShowCodeForm(true)} onUpdateStatus={handleUpdateCodeStatus} onDelete={handleDeleteCode} />}
             {view === "suppliers" && <SuppliersView suppliers={suppliers} gaps={gaps} credits={credits} onAdd={() => { setEditSup(null); setShowSupForm(true); }} onEdit={s => { setEditSup(s); setShowSupForm(true); }} onDelete={handleDeleteSup} onAddCredit={handleAddCredit} onUpdateCreditStatus={handleUpdateCreditStatus} onDeleteCredit={handleDeleteCredit} />}
@@ -1966,8 +2001,8 @@ export default function ShelfAlert() {
 }
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');
-  :root{--on-a:#ffffff;--badge-danger:#b23b38;--badge-info:#28689a;--badge-orange:#b45716;--bg:#f7f7f2;--s:#ffffff;--c:#ffffff;--b:#dce3dc;--ib:#f3f6f2;--a:#28745b;--ad:#e7f2eb;--t1:#24302b;--t2:#526159;--tm:#69786e;--fd:'Syne',sans-serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;--positive:#28745b;--positive-bg:#e7f2eb;--positive-border:#b7dbc6;--danger:#b23b38;--danger-bg:#fbeceb;--danger-border:#e8b7b4;--orange:#b45716;--orange-bg:#fff0e4;--orange-border:#e9c2a2;--warning:#956100;--warning-bg:#fff4d9;--warning-border:#e6d09a;--info:#28689a;--info-bg:#eaf2f9;--info-border:#b8d4e8;--purple:#70549a;--purple-bg:#f2ebf9;--purple-border:#d8c6eb;}
+  @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700;800&display=swap');
+  :root{--on-a:#ffffff;--badge-danger:#b23b38;--badge-info:#28689a;--badge-orange:#b45716;--bg:#f7f7f2;--s:#ffffff;--c:#ffffff;--b:#dce3dc;--ib:#f3f6f2;--a:#28745b;--ad:#e7f2eb;--t1:#24302b;--t2:#526159;--tm:#69786e;--fd:'Atkinson Hyperlegible Next',sans-serif;--fb:'Atkinson Hyperlegible Next',sans-serif;--fm:'Atkinson Hyperlegible Next',sans-serif;--positive:#28745b;--positive-bg:#e7f2eb;--positive-border:#b7dbc6;--danger:#b23b38;--danger-bg:#fbeceb;--danger-border:#e8b7b4;--orange:#b45716;--orange-bg:#fff0e4;--orange-border:#e9c2a2;--warning:#956100;--warning-bg:#fff4d9;--warning-border:#e6d09a;--info:#28689a;--info-bg:#eaf2f9;--info-border:#b8d4e8;--purple:#70549a;--purple-bg:#f2ebf9;--purple-border:#d8c6eb;}
   :root[data-theme='dark']{--on-a:#1b3022;--badge-danger:#a73b35;--badge-info:#32648c;--badge-orange:#9b4b22;--bg:#202623;--s:#2a322e;--c:#303934;--b:#455349;--ib:#252e29;--a:#9ad2ab;--ad:#344c3e;--t1:#f2f5ef;--t2:#c5d1c5;--tm:#a6b8a9;--positive:#9ad2ab;--positive-bg:#294336;--positive-border:#4a7358;--danger:#ffaaa4;--danger-bg:#513330;--danger-border:#83504b;--orange:#ffbd8a;--orange-bg:#523d30;--orange-border:#856048;--warning:#ead28b;--warning-bg:#4b442e;--warning-border:#746843;--info:#a8ccec;--info-bg:#2d4353;--info-border:#4c6c83;--purple:#d4b9ee;--purple-bg:#423650;--purple-border:#685178;}
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--t1);}
