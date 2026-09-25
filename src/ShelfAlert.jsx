@@ -1637,6 +1637,19 @@ const NAV = [
   { id: "theft",     label: "High Theft Items", icon: IC.shield },
   { id: "settings",  label: "Settings",  icon: IC.cog },
 ];
+const NAV_GROUPS = [
+  { label: "Overview", items: ["dashboard"] },
+  { label: "Issues", items: ["gaps", "code", "theft"] },
+  { label: "Manage", items: ["suppliers", "reports"] },
+  { label: "Account", items: ["settings"] },
+];
+const MOBILE_NAV = [
+  { id: "dashboard", label: "Today", icon: IC.home },
+  { id: "issues", label: "Issues", icon: IC.gap },
+  { id: "suppliers", label: "Suppliers", icon: IC.sup },
+  { id: "reports", label: "Reports", icon: IC.report },
+  { id: "more", label: "More", icon: IC.cog },
+];
 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 export default function ShelfAlert() {
@@ -1651,6 +1664,7 @@ export default function ShelfAlert() {
   const [session, setSession] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [view, setView] = useState("dashboard");
+  const [mobileMenu, setMobileMenu] = useState(null);
   const [suppliers, setSuppliers] = useState([]);
   const [gaps, setGaps] = useState([]);
   const [codeItems, setCodeItems] = useState([]);
@@ -1928,15 +1942,20 @@ export default function ShelfAlert() {
             <div style={{ fontFamily: "var(--fd)", fontSize: 22, fontWeight: 900, color: "var(--a)", letterSpacing: -0.5, marginBottom: 2 }}>ShelfAlert</div>
             <div style={{ fontSize: 11, color: "var(--tm)", letterSpacing: 1, fontFamily: "var(--fm)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(settings.storeName || "YOUR STORE").toUpperCase()}</div>
           </div>
-          <nav style={{ flex: 1, padding: "8px 12px" }}>
-            {NAV.map(n => (
-              <button key={n.id} onClick={() => setView(n.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "none", background: view === n.id ? "var(--ad)" : "transparent", color: view === n.id ? "var(--a)" : "var(--tm)", cursor: "pointer", fontSize: 14, fontFamily: "var(--fb)", fontWeight: view === n.id ? 700 : 400, marginBottom: 2, transition: "background .15s, color .15s", textAlign: "left" }}>
-                <Icon d={n.icon} size={16} color={view === n.id ? "var(--a)" : "var(--tm)"} />
-                {n.label}
-                {n.id === "dashboard" && totalAlerts > 0 && <span style={{ marginLeft: "auto", background: "var(--badge-danger)", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{totalAlerts}</span>}
-                {n.id === "gaps" && openGapCount > 0 && <span style={{ marginLeft: "auto", background: "var(--badge-info)", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{openGapCount}</span>}
-                {n.id === "code" && urgentCodeCount > 0 && <span style={{ marginLeft: "auto", background: "var(--badge-orange)", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1px 6px" }}>{urgentCodeCount}</span>}
-              </button>
+          <nav aria-label="Main navigation" style={{ flex: 1, padding: "8px 12px" }}>
+            {NAV_GROUPS.map(group => (
+              <div key={group.label} style={{ marginBottom: 16 }}>
+                <div style={{ padding: "6px 12px", color: "var(--tm)", fontSize: 11, fontWeight: 700, letterSpacing: .8, textTransform: "uppercase" }}>{group.label}</div>
+                {group.items.map(id => {
+                  const n = NAV.find(item => item.id === id);
+                  return <button key={id} onClick={() => setView(id)} aria-current={view === id ? "page" : undefined} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "none", background: view === id ? "var(--ad)" : "transparent", color: view === id ? "var(--a)" : "var(--t2)", cursor: "pointer", fontSize: 14, fontFamily: "var(--fb)", fontWeight: view === id ? 700 : 400, marginBottom: 2, textAlign: "left" }}>
+                    <Icon d={n.icon} size={17} />{n.label}
+                    {id === "dashboard" && totalAlerts > 0 && <span style={{ marginLeft: "auto", background: "var(--badge-danger)", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 700, padding: "1px 6px" }}>{totalAlerts}</span>}
+                    {id === "gaps" && openGapCount > 0 && <span style={{ marginLeft: "auto", background: "var(--badge-info)", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 700, padding: "1px 6px" }}>{openGapCount}</span>}
+                    {id === "code" && urgentCodeCount > 0 && <span style={{ marginLeft: "auto", background: "var(--badge-orange)", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 700, padding: "1px 6px" }}>{urgentCodeCount}</span>}
+                  </button>;
+                })}
+              </div>
             ))}
           </nav>
           <div style={{ padding: "12px 20px", borderTop: "1px solid var(--b)" }}>
@@ -1978,16 +1997,26 @@ export default function ShelfAlert() {
         </div>
       </div>
 
-      <nav className="mobile-nav">
-        {NAV.map(n => (
-          <button key={n.id} onClick={() => setView(n.id)} className={`mobile-nav-btn${view === n.id ? " active" : ""}`}>
-            <Icon d={n.icon} size={20} color={view === n.id ? "var(--a)" : "var(--tm)"} />
-            <span style={{ fontSize: 9, marginTop: 2, fontFamily: "var(--fm)" }}>{n.label}</span>
-            {n.id === "dashboard" && totalAlerts > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "var(--badge-danger)", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{totalAlerts}</span>}
-            {n.id === "gaps" && openGapCount > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "var(--badge-info)", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{openGapCount}</span>}
-            {n.id === "code" && urgentCodeCount > 0 && <span style={{ position: "absolute", top: 4, right: "50%", transform: "translateX(10px)", background: "var(--badge-orange)", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 800, padding: "1px 5px", lineHeight: 1.4 }}>{urgentCodeCount}</span>}
-          </button>
-        ))}
+      {mobileMenu && <>
+        <button className="mobile-menu-scrim" type="button" aria-label="Close menu" onClick={() => setMobileMenu(null)} />
+        <div className="mobile-menu-panel" role="menu" aria-label={mobileMenu === "issues" ? "Issues" : "More"}>
+          <div style={{ fontWeight: 700, padding: "4px 12px 10px", color: "var(--t1)" }}>{mobileMenu === "issues" ? "Issues" : "More"}</div>
+          {(mobileMenu === "issues" ? ["gaps", "code", "theft"] : ["settings"]).map(id => {
+            const item = NAV.find(n => n.id === id);
+            return <button key={id} type="button" role="menuitem" onClick={() => { setView(id); setMobileMenu(null); }} style={{ ...BS, display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", border: "none", color: view === id ? "var(--a)" : "var(--t1)", padding: "12px" }}><Icon d={item.icon} size={18} />{item.label}</button>;
+          })}
+        </div>
+      </>}
+      <nav className="mobile-nav" aria-label="Mobile navigation">
+        {MOBILE_NAV.map(n => {
+          const active = n.id === "issues" ? ["gaps", "code", "theft"].includes(view) : n.id === "more" ? view === "settings" : view === n.id;
+          return <button key={n.id} type="button" onClick={() => n.id === "issues" || n.id === "more" ? setMobileMenu(m => m === n.id ? null : n.id) : (setView(n.id), setMobileMenu(null))} aria-current={active ? "page" : undefined} aria-expanded={["issues", "more"].includes(n.id) ? mobileMenu === n.id : undefined} className={`mobile-nav-btn${active ? " active" : ""}`}>
+            <Icon d={n.icon} size={20} color={active ? "var(--a)" : "var(--tm)"} />
+            <span style={{ fontSize: 11, marginTop: 3, fontFamily: "var(--fb)" }}>{n.label}</span>
+            {n.id === "dashboard" && totalAlerts > 0 && <span style={{ position: "absolute", top: 3, right: "28%", background: "var(--badge-danger)", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 700, padding: "1px 5px" }}>{totalAlerts}</span>}
+            {n.id === "issues" && openGapCount + urgentCodeCount > 0 && <span style={{ position: "absolute", top: 3, right: "28%", background: "var(--badge-info)", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 700, padding: "1px 5px" }}>{openGapCount + urgentCodeCount}</span>}
+          </button>;
+        })}
       </nav>
 
       {showGapForm  && <GapForm suppliers={suppliers} token={session.token} numAisles={settings.numAisles} numBays={settings.numBays} depts={depts} onSave={handleAddGap} onClose={() => setShowGapForm(false)} />}
@@ -2032,5 +2061,7 @@ const CSS = `
     .mobile-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--tm);font-family:var(--fb);position:relative;padding:8px 0;transition:color .15s;}
     .mobile-nav-btn.active{color:var(--a);}
     .mobile-nav-btn.active::before{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--a);border-radius:0 0 2px 2px;}
+    .mobile-menu-scrim{position:fixed;inset:0;background:rgba(0,0,0,.22);border:0;z-index:198;cursor:pointer;}
+    .mobile-menu-panel{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));left:12px;right:12px;background:var(--s);border:1px solid var(--b);border-radius:14px;padding:12px;z-index:201;box-shadow:0 14px 40px rgba(0,0,0,.2);}
   }
 `;
