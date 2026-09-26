@@ -8,6 +8,21 @@ export function productTextFromOcr(text) {
   return [name, size && !name.toLowerCase().includes(size.toLowerCase()) ? size : ""].filter(Boolean).join(" ").slice(0, 120);
 }
 
+export function stockCodeFromOcr(text, confidence) {
+  if (confidence < 65) return "";
+  const first = text.toUpperCase().trim().split(/\s+/)[0]?.replace(/^[^A-Z0-9]+|[^A-Z0-9-]+$/g, "") || "";
+  return /^[A-Z0-9][A-Z0-9-]{2,11}$/.test(first) && !/^\d{10,}$/.test(first) ? first : "";
+}
+
+const stockMarker = /^\[\[ShelfAlert stock code: ([A-Z0-9-]{3,12})\]\](?:\n|$)/;
+export function encodeGapNotes(stockCode, notes) {
+  return `${stockCode ? `[[ShelfAlert stock code: ${stockCode}]]\n` : ""}${notes || ""}`;
+}
+export function decodeGapNotes(notes = "") {
+  const match = notes.match(stockMarker);
+  return { stockCode: match?.[1] || "", notes: match ? notes.slice(match[0].length) : notes };
+}
+
 // Green shelf tickets are often a tiny fraction of a portrait photo. Locate
 // their dense green rows and columns before reading the product-name strip.
 export async function cropGreenShelfTicket(file) {
@@ -46,6 +61,11 @@ export async function cropGreenShelfTicket(file) {
     heading.width = Math.min(2400, Math.round(sourceWidth * 4));
     heading.height = Math.round(heading.width * sourceHeight / sourceWidth);
     heading.getContext("2d").drawImage(canvas, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, heading.width, heading.height);
-    return heading;
+    const stock = document.createElement("canvas");
+    const stockX = left + (right - left) * .03, stockY = top + (bottom - top) * .37;
+    const stockWidth = (right - left) * .22, stockHeight = (bottom - top) * .14;
+    stock.width = Math.round(stockWidth * 4); stock.height = Math.round(stockHeight * 4);
+    stock.getContext("2d").drawImage(canvas, stockX, stockY, stockWidth, stockHeight, 0, 0, stock.width, stock.height);
+    return { heading, stock };
   } finally { bitmap.close(); }
 }
