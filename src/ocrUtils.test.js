@@ -1,4 +1,4 @@
-import { productTextFromOcr, stockCodeFromOcr, encodeGapNotes, decodeGapNotes } from "./ocrUtils";
+import { productTextFromOcr, stockCodeFromOcr, ticketLocationFromOcr, encodeGapNotes, decodeGapNotes } from "./ocrUtils";
 
 test("suggests the product and size while skipping shelf price labels", () => {
   expect(productTextFromOcr("SPECIAL\n$4.50\nBirds Eye Chicken Nuggets\n400g\nSAVE $1.00"))
@@ -24,4 +24,11 @@ test("accepts a short stock code regardless of its first character and excludes 
 test("saves a stock code while keeping ordinary gap notes readable", () => {
   expect(decodeGapNotes(encodeGapNotes("S346039", "Check back stock"))).toEqual({stockCode: "S346039", notes: "Check back stock"});
   expect(decodeGapNotes("Check back stock")).toEqual({stockCode: "", notes: "Check back stock"});
+});
+
+test("reads aisle and bay from the short code below the print date", () => {
+  expect(ticketLocationFromOcr("03-33", 95)).toEqual({ aisle: "3", bay: "33" });
+  expect(ticketLocationFromOcr("25/05/26", 99)).toBeNull();
+  expect(ticketLocationFromOcr("03-38", 50)).toBeNull();
+  expect(ticketLocationFromOcr("00-33", 95)).toBeNull();
 });
