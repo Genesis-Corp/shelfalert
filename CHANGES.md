@@ -11,7 +11,7 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - [x] Make Dashboard a task-first Today view: rep visits, near-code alerts and priority gaps first; Log gap and View all gaps actions; supporting statistics below.
 - [x] Group desktop navigation and simplify mobile navigation to Today, Issues, Suppliers, Reports, and More. Issues opens Gaps, Near Code and High Theft Items; More opens Settings.
 - [x] Standardise Gaps, Near Code, Suppliers and incident lists with search, existing filters, result counts, clearer empty states and mobile row actions.
-- [ ] Review layouts at phone, tablet, and desktop widths with authenticated data.
+- [ ] Review layouts at phone, tablet, and desktop widths with authenticated data. Tablet navigation, narrow phone forms, supplier tabs, and modal spacing have been adjusted from source review; authenticated visual verification remains.
 - [x] Show uploaded gap photos as thumbnails on Today, with a larger preview on selection.
 - [x] Replace browser image-description API call with on-device OCR in Log New Gap. Suggest product text and fill supplier/aisle/bay only if clearly printed; keep every field editable. Bundle OCR assets with the site.
 - [x] Replace Graphite & Forest with Navy & Citrus in Settings and throughout the dark theme; keep green only for positive-status signals.
@@ -27,6 +27,8 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - [ ] Avoid repeat emails within the same notification window; test today/tomorrow and timezone boundaries.
 
 ## Notes
+
+- 2026-09-26: Responsive layout pass: switch from the 220px sidebar to compact navigation below 901px, preserve safe-area room below content, allow supplier tabs/actions to wrap, fit modals within phone height, prevent toast overflow, and stack aisle/bay fields below 381px. Build verification completed; a signed-in phone/tablet/desktop visual pass is still needed before checking this item complete.
 
 - 2026-09-25: Began the light palette and removed emoji in source and email. Production email sending remains unverified; no credentials or scheduler are stored in this repository.
 - 2026-09-25: Removed unused `DEPT_CODES` so warnings cannot turn into failures under `CI=true`. The initial changes were pushed to `codex/shelfalert-light-theme` on GitHub; Vercel deployment still needs verification.
