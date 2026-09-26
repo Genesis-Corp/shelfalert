@@ -8,3 +8,7 @@ test("suggests the product and size while skipping shelf price labels", () => {
 test("returns no suggestion when the image has only a price and aisle marker", () => {
   expect(productTextFromOcr("$3.50\nAisle 4 Bay 2")).toBe("");
 });
+
+test("keeps the shelf-ticket wording and corrects the litre size read as letters", () => {
+  expect(productTextFromOcr("C/BELLA CCNUT WTR COFFEE IL")).toBe("C/BELLA CCNUT WTR COFFEE 1L");
+});
