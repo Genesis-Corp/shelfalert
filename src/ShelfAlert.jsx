@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { getWeeklyData, getMonthlyWeeklyTotals, getMonthlyDayBreakdown, generateTheftCSV } from "./theftUtils";
-import { productTextFromOcr, cropGreenShelfTicket } from "./ocrUtils";
+import { productTextFromOcr, stockCodeFromOcr, encodeGapNotes, decodeGapNotes, cropGreenShelfTicket } from "./ocrUtils";
 
 // ─── SUPABASE CLIENT (official library — handles auth/refresh automatically) ──
 const supabase = createClient(
@@ -147,9 +147,9 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-AU", { day: "numer
 
 // ─── MAPPERS ──────────────────────────────────────────────────────────────────
 const mapGap = (g) => ({
-  id: g.id, supplierId: g.supplier_id, description: g.description,
+  id: g.id, supplierId: g.supplier_id, description: g.description, stockCode: decodeGapNotes(g.notes).stockCode,
   aisle: g.aisle, bay: g.bay, priority: g.priority, status: g.status,
-  notes: g.notes, imageUrl: g.image_url, unavailableUntil: g.unavailable_until,
+  notes: decodeGapNotes(g.notes).notes, imageUrl: g.image_url, unavailableUntil: g.unavailable_until,
   loggedBy: g.logged_by, loggedAt: g.logged_at,
 });
 const mapSupplier = (s) => ({
@@ -425,7 +425,7 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
             <Card key={g.id} style={{ marginBottom: 8, borderColor: "var(--danger-border)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
                 {g.imageUrl && <button type="button" onClick={() => setPreviewImage({ url: g.imageUrl, description: g.description })} aria-label={`View photo for ${g.description}`} style={{ padding: 0, border: 0, background: "none", cursor: "zoom-in" }}><img src={g.imageUrl} alt="" style={{ width: 60, height: 60, borderRadius: 8, objectFit: "cover" }} /></button>}
-                <div style={{ flex: 1, minWidth: 150 }}><strong style={{ color: "var(--t1)" }}>{g.description}</strong><div style={{ color: "var(--t2)", fontSize: 12, marginTop: 3 }}>{suppliers.find(s => s.id === g.supplierId)?.name || "Unknown supplier"} · {fmtLocation(g.aisle, g.bay)}</div></div>
+                <div style={{ flex: 1, minWidth: 150 }}><strong style={{ color: "var(--t1)" }}>{g.description}</strong><div style={{ color: "var(--t2)", fontSize: 12, marginTop: 3 }}>{g.stockCode && `Stock ${g.stockCode} · `}{suppliers.find(s => s.id === g.supplierId)?.name || "Unknown supplier"} · {fmtLocation(g.aisle, g.bay)}</div></div>
                 <Badge status={g.status} />
               </div>
             </Card>
@@ -460,7 +460,7 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
               {g.imageUrl && <button type="button" onClick={() => setPreviewImage({ url: g.imageUrl, description: g.description })} aria-label={`View photo for ${g.description}`} style={{ padding: 0, border: 0, background: "none", cursor: "zoom-in", flexShrink: 0 }}><img src={g.imageUrl} alt="" style={{ width: 60, height: 60, borderRadius: 8, objectFit: "cover" }} /></button>}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}><Dot priority={g.priority} /><span style={{ fontWeight: 600, fontSize: 14, color: "var(--t1)" }}>{g.description}</span></div>
-                <div style={{ fontSize: 12, color: "var(--tm)" }}>{sup?.name} · {fmtLocation(g.aisle, g.bay)} · {g.loggedBy}</div>
+                <div style={{ fontSize: 12, color: "var(--tm)" }}>{g.stockCode && `Stock ${g.stockCode} · `}{sup?.name} · {fmtLocation(g.aisle, g.bay)} · {g.loggedBy}</div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
                 <Badge status={g.status} />
@@ -494,7 +494,7 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
   const [search, setSearch] = useState("");
   const [deletionOpen, setDeletionOpen] = useState(null);
   const [enlargedImage, setEnlargedImage] = useState(null);
-  const filtered = gaps.filter(g => (filter === "all" || g.status === filter) && (supFilter === "all" || g.supplierId === supFilter) && matchesSearch(search, g.description, g.notes, g.aisle, suppliers.find(s => s.id === g.supplierId)?.name));
+  const filtered = gaps.filter(g => (filter === "all" || g.status === filter) && (supFilter === "all" || g.supplierId === supFilter) && matchesSearch(search, g.description, g.stockCode, g.notes, g.aisle, suppliers.find(s => s.id === g.supplierId)?.name));
   const FILTERS = ["all","open","missed","ordered","unavailable","deletion_confirmed","deletion_followup"];
   return (
     <div>
@@ -521,7 +521,7 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}><Dot priority={g.priority} /><span style={{ fontWeight: 700, fontSize: 15, color: "var(--t1)" }}>{g.description}</span><Badge status={g.status} />{g.priority === "high" && <span style={{ fontSize: 10, color: "var(--danger)", fontFamily: "var(--fm)", letterSpacing: 1 }}>HIGH PRIORITY</span>}</div>
-                <div style={{ fontSize: 12, color: "var(--tm)", marginBottom: 6, display: "flex", flexWrap: "wrap", gap: "4px 14px" }}><span>{sup?.name||"—"}</span><span>{fmtLocation(g.aisle, g.bay)}</span><span>{g.loggedBy}</span><span>{fmtDate(g.loggedAt)}</span></div>
+                <div style={{ fontSize: 12, color: "var(--tm)", marginBottom: 6, display: "flex", flexWrap: "wrap", gap: "4px 14px" }}><span>{sup?.name||"—"}</span>{g.stockCode && <span>Stock {g.stockCode}</span>}<span>{fmtLocation(g.aisle, g.bay)}</span><span>{g.loggedBy}</span><span>{fmtDate(g.loggedAt)}</span></div>
                 {g.notes && <div style={{ fontSize: 12, color: "var(--t2)", background: "var(--ib)", borderRadius: 6, padding: "6px 10px" }}>"{g.notes}"</div>}
                 {g.unavailableUntil && <div style={{ fontSize: 11, color: "var(--warning)", marginTop: 4 }}>Expected back: {fmtDate(g.unavailableUntil)}</div>}
               </div>
@@ -897,7 +897,7 @@ function SettingsView({ settings, depts, onSave, saving, onAddDept, onUpdateDept
 
 // ─── FORMS ────────────────────────────────────────────────────────────────────
 function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose }) {
-  const [f, setF] = useState({ description: "", supplierId: "", aisle: "", bay: "", priority: "normal", notes: "", imageFile: null, imagePreview: null });
+  const [f, setF] = useState({ description: "", stockCode: "", supplierId: "", aisle: "", bay: "", priority: "normal", notes: "", imageFile: null, imagePreview: null });
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrMessage, setOcrMessage] = useState("");
   const [ocrText, setOcrText] = useState("");
@@ -930,21 +930,22 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
         if (scanId.current === currentScan) setOcrMessage("Could not isolate the green label. Take a closer photo of the product name or enter it manually.");
         return;
       }
-      if (scanId.current === currentScan) setOcrCrop(ticket.toDataURL("image/jpeg", .85));
+      if (scanId.current === currentScan) setOcrCrop(ticket.heading.toDataURL("image/jpeg", .85));
       await worker.setParameters({ tessedit_pageseg_mode: "7" });
-      const { data } = await worker.recognize(ticket);
+      const { data } = await worker.recognize(ticket.heading);
+      const stockResult = await worker.recognize(ticket.stock);
       if (scanId.current !== currentScan) return;
       const text = data.text.trim();
       setOcrText(text.slice(0, 600));
       const suggestion = data.confidence >= 55 && text.length < 160 && /[a-z]{3,}.*[a-z]{3,}/i.test(text) ? productTextFromOcr(text) : "";
-      const supplierMatches = suggestion ? suppliers.filter(sup => sup.name.length >= 4 && text.toLocaleLowerCase().includes(sup.name.toLocaleLowerCase())) : [];
+      const stockCode = stockCodeFromOcr(stockResult.data.text, stockResult.data.confidence);
       const location = text.match(/\baisle\s*([a-z0-9]{1,3})(?:\W+bay\s*(\d{1,3}))?/i);
       const aisle = location?.[1]?.toUpperCase();
       const validAisle = aisle && (/^\d+$/.test(aisle) ? +aisle >= 1 && +aisle <= numAisles : depts.some(dept => dept.code === aisle));
       const validBay = location?.[2] && +location[2] >= 1 && +location[2] <= numBays;
       setF(prev => ({ ...prev,
         description: prev.description.trim() ? prev.description : suggestion,
-        supplierId: prev.supplierId || (supplierMatches.length === 1 ? supplierMatches[0].id : ""),
+        stockCode: prev.stockCode || stockCode,
         aisle: prev.aisle || (validAisle ? aisle : ""),
         bay: prev.bay || (validAisle && validBay ? String(+location[2]) : ""),
       }));
@@ -975,11 +976,12 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
           <input ref={uploadRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhoto} />
         </div>
         {f.imagePreview && <img src={f.imagePreview} alt="Selected product or shelf label" style={{ marginTop: 10, width: "100%", maxHeight: 160, objectFit: "contain", background: "var(--ib)", borderRadius: 8 }} />}
-        {ocrCrop && <div style={{ marginTop: 10, fontSize: 12, color: "var(--t2)" }}>Area read (barcode excluded):<img src={ocrCrop} alt="Cropped product-name area sent to the on-device reader" style={{ display: "block", marginTop: 5, width: "100%", maxHeight: 100, objectFit: "contain", background: "var(--ib)" }} /></div>}
+        {ocrCrop && <div style={{ marginTop: 10, fontSize: 12, color: "var(--t2)" }}>Product-name area (barcode excluded):<img src={ocrCrop} alt="Cropped product-name area sent to the on-device reader" style={{ display: "block", marginTop: 5, width: "100%", maxHeight: 100, objectFit: "contain", background: "var(--ib)" }} /></div>}
         {ocrMessage && <div role="status" style={{ fontSize: 12, color: ocrLoading ? "var(--t2)" : "var(--positive)", marginTop: 8 }}>{ocrMessage}</div>}
         {ocrText && <details style={{ marginTop: 8, color: "var(--t2)", fontSize: 12 }}><summary>Show recognised text</summary><div style={{ whiteSpace: "pre-wrap", overflow: "auto", maxHeight: 140, marginTop: 6, padding: 8, background: "var(--ib)", borderRadius: 6 }}>{ocrText}</div></details>}
       </Field>
       <Field label="Product Description"><input style={IS} placeholder="e.g. Birds Eye Chicken Nuggets 400g" value={f.description} onChange={e => s("description", e.target.value)} /></Field>
+      <Field label="Stock Code" hint="Short code at the left of the shelf ticket, not the barcode. Check the suggested value."><input style={IS} placeholder="e.g. S346039" maxLength={12} value={f.stockCode} onChange={e => s("stockCode", e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""))} /></Field>
       <Field label="Supplier">
         <select style={IS} value={f.supplierId} onChange={e => s("supplierId", e.target.value)}>
           <option value="">— Select supplier —</option>
@@ -1833,7 +1835,7 @@ export default function ShelfAlert() {
   const handleSignOut = async () => { await sb.signOut(); clearSession(); };
 
   const handleAddGap = async (form) => {
-    const body = { supplier_id: form.supplierId, description: form.description.trim(), aisle: form.aisle || null, bay: form.bay || null, priority: form.priority, status: "open", notes: form.notes || "", image_url: form.imageUrl || null, logged_by: session.displayName, logged_at: new Date().toISOString() };
+    const body = { supplier_id: form.supplierId, description: form.description.trim(), aisle: form.aisle || null, bay: form.bay || null, priority: form.priority, status: "open", notes: encodeGapNotes(form.stockCode, form.notes), image_url: form.imageUrl || null, logged_by: session.displayName, logged_at: new Date().toISOString() };
     const res = await sb.insert("gaps", session.token, body);
     if (res && Array.isArray(res) && res[0]) { setGaps(g => [mapGap(res[0]), ...g]); toast$("Gap logged"); }
     else if (res && res.id) { setGaps(g => [mapGap(res), ...g]); toast$("Gap logged"); }
