@@ -14,6 +14,13 @@ export function stockCodeFromOcr(text, confidence) {
   return /^[A-Z0-9][A-Z0-9-]{2,11}$/.test(first) && !/^\d{10,}$/.test(first) ? first : "";
 }
 
+export function ticketLocationFromOcr(text, confidence) {
+  if (confidence < 70) return null;
+  const match = text.trim().match(/^(\d{1,2})\s*[-–]\s*(\d{1,2})$/);
+  if (!match || +match[1] < 1 || +match[2] < 1) return null;
+  return { aisle: String(+match[1]), bay: String(+match[2]) };
+}
+
 const stockMarker = /^\[\[ShelfAlert stock code: ([A-Z0-9-]{3,12})\]\](?:\n|$)/;
 export function encodeGapNotes(stockCode, notes) {
   return `${stockCode ? `[[ShelfAlert stock code: ${stockCode}]]\n` : ""}${notes || ""}`;
@@ -66,6 +73,20 @@ export async function cropGreenShelfTicket(file) {
     const stockWidth = (right - left) * .22, stockHeight = (bottom - top) * .14;
     stock.width = Math.round(stockWidth * 4); stock.height = Math.round(stockHeight * 4);
     stock.getContext("2d").drawImage(canvas, stockX, stockY, stockWidth, stockHeight, 0, 0, stock.width, stock.height);
-    return { heading, stock };
+    // The aisle-bay pair sits directly below the print date. Binarising this
+    // strip prevents the green/white border from turning a final 3 into 8.
+    const location = document.createElement("canvas");
+    const locationX = left + (right - left) * .43, locationY = top + (bottom - top) * .50;
+    const locationWidth = (right - left) * .147, locationHeight = (bottom - top) * .14;
+    location.width = Math.round(locationWidth * 4); location.height = Math.round(locationHeight * 4);
+    const locationCtx = location.getContext("2d", { willReadFrequently: true });
+    locationCtx.drawImage(canvas, locationX, locationY, locationWidth, locationHeight, 0, 0, location.width, location.height);
+    const pixels = locationCtx.getImageData(0, 0, location.width, location.height);
+    for (let i = 0; i < pixels.data.length; i += 4) {
+      const value = .299 * pixels.data[i] + .587 * pixels.data[i + 1] + .114 * pixels.data[i + 2] > 100 ? 255 : 0;
+      pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = value;
+    }
+    locationCtx.putImageData(pixels, 0, 0);
+    return { heading, stock, location };
   } finally { bitmap.close(); }
 }
