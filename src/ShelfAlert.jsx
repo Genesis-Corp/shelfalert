@@ -243,13 +243,13 @@ function Card({ children, style = {}, onClick }) {
 }
 function Modal({ title, onClose, children, width = 540 }) {
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background: "var(--s)", border: "1px solid var(--b)", borderRadius: 16, width: "100%", maxWidth: width, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 80px rgba(0,0,0,.6)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid var(--b)" }}>
+    <div className="modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-dialog" style={{ background: "var(--s)", border: "1px solid var(--b)", borderRadius: 16, width: "100%", maxWidth: width, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 80px rgba(0,0,0,.6)" }}>
+        <div className="modal-heading" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid var(--b)" }}>
           <span style={{ fontFamily: "var(--fd)", fontSize: 18, color: "var(--t1)", fontWeight: 600 }}>{title}</span>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--tm)", padding: 4 }}><Icon d={IC.x} /></button>
         </div>
-        <div style={{ padding: "24px" }}>{children}</div>
+        <div className="modal-body" style={{ padding: "24px" }}>{children}</div>
       </div>
     </div>
   );
@@ -268,7 +268,7 @@ function Toast({ msg, type = "success", onDone }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t); }, []);
   const c = { success: "var(--a)", error: "var(--danger)", info: "var(--info)" }[type] || "var(--a)";
-  return <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "var(--s)", border: `1px solid ${c}`, borderRadius: 10, padding: "12px 20px", color: c, fontSize: 13, fontWeight: 600, zIndex: 2000, boxShadow: "0 8px 32px rgba(0,0,0,.6)", whiteSpace: "nowrap" }}>{msg}</div>;
+  return <div style={{ position: "fixed", bottom: "calc(80px + env(safe-area-inset-bottom))", left: "50%", transform: "translateX(-50%)", maxWidth: "calc(100vw - 24px)", background: "var(--s)", border: `1px solid ${c}`, borderRadius: 10, padding: "12px 20px", color: c, fontSize: 13, fontWeight: 600, zIndex: 2000, boxShadow: "0 8px 32px rgba(0,0,0,.6)", overflowWrap: "anywhere" }}>{msg}</div>;
 }
 
 // ─── LOCATION PICKER ──────────────────────────────────────────────────────────
@@ -276,7 +276,7 @@ function LocationPicker({ aisle, bay, onAisleChange, onBayChange, numAisles, num
   const aisleOpts = buildAisleOptions(numAisles, depts);
   const bayOpts   = buildBayOptions(Math.max(numBays, Number(bay) || 0));
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+    <div className="location-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
       <Field label="Aisle">
         <select style={IS} value={aisle} onChange={e => onAisleChange(e.target.value)}>
           <option value="">— Select —</option>
@@ -717,7 +717,7 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
 
             {isOpen && (
               <div style={{ background: "var(--s)", border: "1px solid var(--a)", borderTop: "none", borderRadius: "0 0 12px 12px" }}>
-                <div style={{ display: "flex", borderBottom: "1px solid var(--b)", padding: "0 20px" }}>
+                <div className="supplier-tabs" style={{ display: "flex", borderBottom: "1px solid var(--b)", padding: "0 20px" }}>
                   {[["details","Rep Details"],["credits","Credits & Returns"]].map(([id, label]) => (
                     <button key={id} onClick={() => setTab(s.id, id)} style={{ background: "none", border: "none", borderBottom: `2px solid ${tab === id ? "var(--a)" : "transparent"}`, color: tab === id ? "var(--a)" : "var(--tm)", cursor: "pointer", padding: "12px 16px", fontSize: 13, fontWeight: tab === id ? 700 : 400, fontFamily: "var(--fb)", transition: "color .15s", marginBottom: -1 }}>
                       {label}
@@ -2127,20 +2127,33 @@ const CSS = `
     #theft-print-report td { padding: 5px 8px; border-bottom: 1px solid #eee; }
     #theft-print-report .print-stat { display: inline-block; border: 1px solid #ccc; border-radius: 6px; padding: 8px 16px; margin-right: 12px; margin-bottom: 12px; }
   }
+  @media(max-width:900px){
+    aside{display:none!important;}
+    main{margin-left:0!important;max-width:100vw!important;min-width:0;padding:70px 20px calc(96px + env(safe-area-inset-bottom))!important;}
+    .mobile-header{display:flex!important;position:fixed;top:0;left:0;right:0;height:56px;background:var(--s);border-bottom:1px solid var(--b);padding:0 16px;align-items:center;justify-content:space-between;z-index:200;}
+    .mobile-nav{display:flex!important;position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--b);z-index:200;padding-bottom:env(safe-area-inset-bottom);}
+    .mobile-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--tm);font-family:var(--fb);position:relative;padding:8px 0;min-height:56px;transition:color .15s;}
+    .mobile-nav-btn.active{color:var(--a);}
+    .mobile-nav-btn.active::before{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--a);border-radius:0 0 2px 2px;}
+    .mobile-menu-scrim{position:fixed;inset:0;background:rgba(0,0,0,.22);border:0;z-index:198;cursor:pointer;}
+    .mobile-menu-panel{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));left:12px;right:12px;background:var(--s);border:1px solid var(--b);border-radius:14px;padding:12px;z-index:201;box-shadow:0 14px 40px rgba(0,0,0,.2);}
+  }
   @media(max-width:680px){
     .list-toolbar{align-items:stretch;flex-wrap:wrap;}
     .list-search{max-width:none;flex-basis:100%;}
     .list-row{flex-wrap:wrap;}
     .list-row-actions{width:100%;flex-direction:row!important;flex-wrap:wrap;justify-content:flex-start;}
     .list-row-actions button{min-height:36px;}
-    aside{display:none!important;}
-    main{margin-left:0!important;max-width:100vw!important;padding:70px 14px 90px!important;}
-    .mobile-header{display:flex!important;position:fixed;top:0;left:0;right:0;height:56px;background:var(--s);border-bottom:1px solid var(--b);padding:0 16px;align-items:center;justify-content:space-between;z-index:200;}
-    .mobile-nav{display:flex!important;position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--b);z-index:200;padding-bottom:env(safe-area-inset-bottom);}
-    .mobile-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--tm);font-family:var(--fb);position:relative;padding:8px 0;transition:color .15s;}
-    .mobile-nav-btn.active{color:var(--a);}
-    .mobile-nav-btn.active::before{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--a);border-radius:0 0 2px 2px;}
-    .mobile-menu-scrim{position:fixed;inset:0;background:rgba(0,0,0,.22);border:0;z-index:198;cursor:pointer;}
-    .mobile-menu-panel{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));left:12px;right:12px;background:var(--s);border:1px solid var(--b);border-radius:14px;padding:12px;z-index:201;box-shadow:0 14px 40px rgba(0,0,0,.2);}
+    main{padding:70px 14px calc(96px + env(safe-area-inset-bottom))!important;}
+    .supplier-tabs{flex-wrap:wrap;padding:0 10px!important;}
+    .supplier-tabs > button{padding:12px 8px!important;}
+    .supplier-tabs > div:last-child{width:100%;justify-content:flex-end;padding:0 0 10px!important;}
+    .modal-backdrop{padding:8px!important;}
+    .modal-dialog{max-height:calc(100dvh - 16px)!important;}
+    .modal-heading{padding:14px 16px!important;}
+    .modal-body{padding:16px!important;}
+  }
+  @media(max-width:380px){
+    .location-grid{grid-template-columns:1fr!important;gap:0!important;}
   }
 `;
