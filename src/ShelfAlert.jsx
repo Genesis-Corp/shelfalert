@@ -901,6 +901,7 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrMessage, setOcrMessage] = useState("");
   const [ocrText, setOcrText] = useState("");
+  const [ocrCrop, setOcrCrop] = useState("");
   const [saving, setSaving] = useState(false);
   const cameraRef = useRef(); const uploadRef = useRef(); const scanId = useRef(0);
   const s = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -910,7 +911,7 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
     e.target.value = "";
     const currentScan = ++scanId.current;
     setF(prev => ({ ...prev, imageFile: file }));
-    setOcrText(""); setOcrMessage("Reading printed text on this device…"); setOcrLoading(true);
+    setOcrText(""); setOcrCrop(""); setOcrMessage("Finding the product name on this device…"); setOcrLoading(true);
     const reader = new FileReader();
     reader.onload = ev => { if (scanId.current === currentScan) s("imagePreview", ev.target.result); };
     reader.readAsDataURL(file);
@@ -925,8 +926,13 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
         langPath: `${assetRoot}/lang`,
       });
       const ticket = await cropGreenShelfTicket(file).catch(() => null);
-      if (ticket) await worker.setParameters({ tessedit_pageseg_mode: "7" });
-      const { data } = await worker.recognize(ticket || file);
+      if (!ticket) {
+        if (scanId.current === currentScan) setOcrMessage("Could not isolate the green label. Take a closer photo of the product name or enter it manually.");
+        return;
+      }
+      if (scanId.current === currentScan) setOcrCrop(ticket.toDataURL("image/jpeg", .85));
+      await worker.setParameters({ tessedit_pageseg_mode: "7" });
+      const { data } = await worker.recognize(ticket);
       if (scanId.current !== currentScan) return;
       const text = data.text.trim();
       setOcrText(text.slice(0, 600));
@@ -969,6 +975,7 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
           <input ref={uploadRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhoto} />
         </div>
         {f.imagePreview && <img src={f.imagePreview} alt="Selected product or shelf label" style={{ marginTop: 10, width: "100%", maxHeight: 160, objectFit: "contain", background: "var(--ib)", borderRadius: 8 }} />}
+        {ocrCrop && <div style={{ marginTop: 10, fontSize: 12, color: "var(--t2)" }}>Area read (barcode excluded):<img src={ocrCrop} alt="Cropped product-name area sent to the on-device reader" style={{ display: "block", marginTop: 5, width: "100%", maxHeight: 100, objectFit: "contain", background: "var(--ib)" }} /></div>}
         {ocrMessage && <div role="status" style={{ fontSize: 12, color: ocrLoading ? "var(--t2)" : "var(--positive)", marginTop: 8 }}>{ocrMessage}</div>}
         {ocrText && <details style={{ marginTop: 8, color: "var(--t2)", fontSize: 12 }}><summary>Show recognised text</summary><div style={{ whiteSpace: "pre-wrap", overflow: "auto", maxHeight: 140, marginTop: 6, padding: 8, background: "var(--ib)", borderRadius: 6 }}>{ocrText}</div></details>}
       </Field>
