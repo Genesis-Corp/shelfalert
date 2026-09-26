@@ -3,7 +3,7 @@
 export function productTextFromOcr(text) {
   const lines = text.split(/\r?\n/).map(line => line.replace(/\s+/g, " ").trim()).filter(Boolean);
   const productLines = lines.filter(line => /[a-z]{2,}/i.test(line) && !/^(?:\$?\d+[.,\d]*|barcode|price|special|save|was|now|each|unit price|aisle|bay|sku|ean|gtin)\b/i.test(line));
-  const name = productLines.find(line => /[a-z]{3,}/i.test(line)) || "";
+  const name = (productLines.find(line => /[a-z]{3,}/i.test(line)) || "").replace(/\bIL\b$/i, "1L");
   const size = text.match(/\b\d+(?:[.,]\d+)?\s?(?:kg|g|mg|ml|l|litres?|pack|pk)\b/i)?.[0];
   return [name, size && !name.toLowerCase().includes(size.toLowerCase()) ? size : ""].filter(Boolean).join(" ").slice(0, 120);
 }
@@ -40,7 +40,9 @@ export async function cropGreenShelfTicket(file) {
     if (bottom - top < 28 || right - left < 100 || (right - left) / (bottom - top) < 1.5) return null;
     const heading = document.createElement("canvas");
     const sourceX = left + (right - left) * .035, sourceY = top + (bottom - top) * .045;
-    const sourceWidth = (right - left) * .77, sourceHeight = (bottom - top) * .42;
+    // The product line occupies the upper third. The next row contains SKU,
+    // date and price, which confuse SINGLE_LINE recognition if included.
+    const sourceWidth = (right - left) * .77, sourceHeight = (bottom - top) * .35;
     heading.width = Math.min(2400, Math.round(sourceWidth * 4));
     heading.height = Math.round(heading.width * sourceHeight / sourceWidth);
     heading.getContext("2d").drawImage(canvas, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, heading.width, heading.height);
