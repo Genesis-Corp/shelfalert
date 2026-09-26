@@ -15,6 +15,7 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - [x] Show uploaded gap photos as thumbnails on Today, with a larger preview on selection.
 - [x] Replace browser image-description API call with on-device OCR in Log New Gap. Suggest product text and fill supplier/aisle/bay only if clearly printed; keep every field editable. Bundle OCR assets with the site.
 - [x] Replace Graphite & Forest with Navy & Citrus in Settings and throughout the dark theme; keep green only for positive-status signals.
+- [x] Add an editable stock code to Log New Gap, read from the left of the shelf ticket without treating the barcode as a stock code; display it on Today and Gaps. Keep supplier manual.
 
 ## Email notifications
 
@@ -37,4 +38,5 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - 2026-09-25: Corrected OCR after a real green shelf-ticket photo filled the form with gibberish. Detect the ticket and read its enlarged product-name strip; require a plausible, confident result before autofilling, and contain the diagnostic text within a short scroll area.
 - 2026-09-26: Removed whole-photo OCR fallback when the green ticket cannot be isolated; the form now shows the actual product-name crop and never scans the barcode beneath it. If no crop is found, it prompts for a closer photo or manual description. Screenshot from zq-the-forge-of-genesis.vercel.app showed older whole-photo OCR behavior, so confirm that URL's deployment separately.
 - 2026-09-26: Narrowed the OCR crop to the top 35% of the green ticket after testing the supplied photo: the earlier 42% included SKU/date text and returned gibberish. The isolated line yielded `C/BELLA CCNUT WTR COFFEE IL` with 84% Tesseract confidence in local testing; normalize terminal `IL` to `1L`. Keep human review before saving.
+- 2026-09-26: Added stock-code recognition from a separate far-left ticket crop. The supplied photo yields `S346039` at 87% confidence; short alphanumeric codes are accepted without requiring an S prefix, while long barcodes are excluded. The code is saved in a structured prefix of the existing gap notes because this repo has no production database migration access; it is parsed back into its own UI field and hidden from ordinary notes. Supplier remains manually selected.
 - 2026-09-25: Jericho selected Navy & Citrus. The dark theme now uses navy surfaces and citrus accents; primary, secondary and muted text and button combinations were checked for contrast. Stone & Forest remains the light option.
