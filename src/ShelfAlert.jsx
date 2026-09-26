@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { getWeeklyData, getMonthlyWeeklyTotals, getMonthlyDayBreakdown, generateTheftCSV } from "./theftUtils";
-import { productTextFromOcr, stockCodeFromOcr, encodeGapNotes, decodeGapNotes, cropGreenShelfTicket } from "./ocrUtils";
+import { productTextFromOcr, stockCodeFromOcr, ticketLocationFromOcr, encodeGapNotes, decodeGapNotes, cropGreenShelfTicket } from "./ocrUtils";
 
 // ─── SUPABASE CLIENT (official library — handles auth/refresh automatically) ──
 const supabase = createClient(
@@ -274,7 +274,7 @@ function Toast({ msg, type = "success", onDone }) {
 // ─── LOCATION PICKER ──────────────────────────────────────────────────────────
 function LocationPicker({ aisle, bay, onAisleChange, onBayChange, numAisles, numBays, depts = [] }) {
   const aisleOpts = buildAisleOptions(numAisles, depts);
-  const bayOpts   = buildBayOptions(numBays);
+  const bayOpts   = buildBayOptions(Math.max(numBays, Number(bay) || 0));
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
       <Field label="Aisle">
@@ -902,6 +902,7 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
   const [ocrMessage, setOcrMessage] = useState("");
   const [ocrText, setOcrText] = useState("");
   const [ocrCrop, setOcrCrop] = useState("");
+  const [locationCrop, setLocationCrop] = useState("");
   const [saving, setSaving] = useState(false);
   const cameraRef = useRef(); const uploadRef = useRef(); const scanId = useRef(0);
   const s = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -911,7 +912,7 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
     e.target.value = "";
     const currentScan = ++scanId.current;
     setF(prev => ({ ...prev, imageFile: file }));
-    setOcrText(""); setOcrCrop(""); setOcrMessage("Finding the product name on this device…"); setOcrLoading(true);
+    setOcrText(""); setOcrCrop(""); setLocationCrop(""); setOcrMessage("Finding the product name on this device…"); setOcrLoading(true);
     const reader = new FileReader();
     reader.onload = ev => { if (scanId.current === currentScan) s("imagePreview", ev.target.result); };
     reader.readAsDataURL(file);
@@ -930,24 +931,25 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
         if (scanId.current === currentScan) setOcrMessage("Could not isolate the green label. Take a closer photo of the product name or enter it manually.");
         return;
       }
-      if (scanId.current === currentScan) setOcrCrop(ticket.heading.toDataURL("image/jpeg", .85));
+      if (scanId.current === currentScan) { setOcrCrop(ticket.heading.toDataURL("image/jpeg", .85)); setLocationCrop(ticket.location.toDataURL("image/png")); }
       await worker.setParameters({ tessedit_pageseg_mode: "7" });
       const { data } = await worker.recognize(ticket.heading);
       const stockResult = await worker.recognize(ticket.stock);
+      await worker.setParameters({ tessedit_char_whitelist: "0123456789-" });
+      const locationResult = await worker.recognize(ticket.location);
       if (scanId.current !== currentScan) return;
       const text = data.text.trim();
       setOcrText(text.slice(0, 600));
       const suggestion = data.confidence >= 55 && text.length < 160 && /[a-z]{3,}.*[a-z]{3,}/i.test(text) ? productTextFromOcr(text) : "";
       const stockCode = stockCodeFromOcr(stockResult.data.text, stockResult.data.confidence);
-      const location = text.match(/\baisle\s*([a-z0-9]{1,3})(?:\W+bay\s*(\d{1,3}))?/i);
-      const aisle = location?.[1]?.toUpperCase();
-      const validAisle = aisle && (/^\d+$/.test(aisle) ? +aisle >= 1 && +aisle <= numAisles : depts.some(dept => dept.code === aisle));
-      const validBay = location?.[2] && +location[2] >= 1 && +location[2] <= numBays;
+      const location = ticketLocationFromOcr(locationResult.data.text, locationResult.data.confidence);
+      const validAisle = location && +location.aisle <= numAisles;
+      const validBay = location && +location.bay <= 100;
       setF(prev => ({ ...prev,
         description: prev.description.trim() ? prev.description : suggestion,
         stockCode: prev.stockCode || stockCode,
-        aisle: prev.aisle || (validAisle ? aisle : ""),
-        bay: prev.bay || (validAisle && validBay ? String(+location[2]) : ""),
+        aisle: prev.aisle || (validAisle ? location.aisle : ""),
+        bay: prev.bay || (validAisle && validBay ? location.bay : ""),
       }));
       if (suggestion) {
         setOcrMessage("Product text found. Check the description before saving.");
@@ -977,6 +979,7 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
         </div>
         {f.imagePreview && <img src={f.imagePreview} alt="Selected product or shelf label" style={{ marginTop: 10, width: "100%", maxHeight: 160, objectFit: "contain", background: "var(--ib)", borderRadius: 8 }} />}
         {ocrCrop && <div style={{ marginTop: 10, fontSize: 12, color: "var(--t2)" }}>Product-name area (barcode excluded):<img src={ocrCrop} alt="Cropped product-name area sent to the on-device reader" style={{ display: "block", marginTop: 5, width: "100%", maxHeight: 100, objectFit: "contain", background: "var(--ib)" }} /></div>}
+        {locationCrop && <div style={{ marginTop: 8, fontSize: 12, color: "var(--t2)" }}>Aisle-bay area below the printed date:<img src={locationCrop} alt="Cropped aisle and bay numbers from the shelf ticket" style={{ display: "block", marginTop: 5, width: 150, height: 52, objectFit: "contain", background: "var(--ib)" }} /></div>}
         {ocrMessage && <div role="status" style={{ fontSize: 12, color: ocrLoading ? "var(--t2)" : "var(--positive)", marginTop: 8 }}>{ocrMessage}</div>}
         {ocrText && <details style={{ marginTop: 8, color: "var(--t2)", fontSize: 12 }}><summary>Show recognised text</summary><div style={{ whiteSpace: "pre-wrap", overflow: "auto", maxHeight: 140, marginTop: 6, padding: 8, background: "var(--ib)", borderRadius: 6 }}>{ocrText}</div></details>}
       </Field>
