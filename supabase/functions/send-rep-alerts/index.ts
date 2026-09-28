@@ -45,39 +45,68 @@ function getCurrentHourInTimezone(timezone: string): number {
   );
 }
 
-function getTomorrowDayInTimezone(timezone: string): string {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return new Intl.DateTimeFormat("en-AU", {
-    timeZone: timezone,
-    weekday: "long",
-  }).format(tomorrow);
-}
-
 // ── Email builder ────────────────────────────────────────────
+// One summary email per morning run — not one email per rep.
 
-function buildEmailHtml(
-  supplierName: string,
-  repName: string,
-  gaps: any[],
-  isToday: boolean
+function buildSummaryEmailHtml(
+  reps: { supplier: any; gaps: any[]; codeItems: any[] }[],
+  todayDay: string
 ): string {
-  const gapRows = gaps
+  const repRows = reps
     .map(
-      (g) => `
+      ({ supplier }) => `
       <tr>
-        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;color:#e8edf5;font-size:14px;">${g.description}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;color:#9ba8bb;font-size:13px;">${g.aisle}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;font-size:12px;">
-          <span style="background:${g.priority === "high" ? "#3d1a1a" : "#1a1a2e"};color:${g.priority === "high" ? "#ff7070" : "#60a5fa"};padding:2px 8px;border-radius:10px;font-weight:700;">
-            ${g.priority.toUpperCase()}
-          </span>
-        </td>
-        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;color:#5a6478;font-size:12px;">${g.notes || "—"}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;color:#e8edf5;font-size:14px;">${supplier.name}${supplier.contact ? ` — ${supplier.contact}` : ""}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;color:#9ba8bb;font-size:13px;">${supplier.phone || "—"}</td>
       </tr>
     `
     )
     .join("");
+
+  const gapRows = reps
+    .flatMap(({ supplier, gaps }) =>
+      gaps.map(
+        (g) => `
+      <tr>
+        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;color:#e8edf5;font-size:14px;">${g.description}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;color:#9ba8bb;font-size:13px;">${supplier.name}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;color:#9ba8bb;font-size:13px;">${g.aisle || "—"}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;font-size:12px;">
+          <span style="background:${g.priority === "high" ? "#3d1a1a" : "#1a1a2e"};color:${g.priority === "high" ? "#ff7070" : "#60a5fa"};padding:2px 8px;border-radius:10px;font-weight:700;">
+            ${(g.priority || "normal").toUpperCase()}
+          </span>
+        </td>
+      </tr>
+    `
+      )
+    )
+    .join("");
+
+  const codeRows = reps
+    .flatMap(({ supplier, codeItems }) =>
+      codeItems.map(
+        (c) => `
+      <tr>
+        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;color:#e8edf5;font-size:14px;">${c.description}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;color:#9ba8bb;font-size:13px;">${supplier.name}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #1e2430;color:#e8edf5;font-size:13px;">${c.use_by_date}</td>
+      </tr>
+    `
+      )
+    )
+    .join("");
+
+  const section = (title: string, headerCells: string, rows: string, emptyLabel: string) => `
+    <h2 style="color:#e8edf5;font-size:16px;margin:24px 0 10px;">${title}</h2>
+    ${
+      rows
+        ? `<table style="width:100%;border-collapse:collapse;border:1px solid #1e2430;border-radius:8px;overflow:hidden;">
+            <thead><tr style="background:#131720;">${headerCells}</tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`
+        : `<p style="color:#5a6478;font-size:13px;margin:0;">${emptyLabel}</p>`
+    }
+  `;
 
   return `
 <!DOCTYPE html>
@@ -89,24 +118,35 @@ function buildEmailHtml(
       <span style="font-size:28px;font-weight:900;color:#00e5b0;letter-spacing:-1px;">ShelfAlert</span>
     </div>
     <div style="background:#0f1217;border:1px solid #1e2430;border-radius:12px;padding:28px;margin-bottom:20px;">
-      <h2 style="color:#e8edf5;font-size:20px;margin:0 0 8px;">
-        ${isToday ? "Rep Visit TODAY" : "Rep Visit TOMORROW"}
-      </h2>
-      <p style="color:#9ba8bb;font-size:14px;margin:0 0 20px;">
-        <strong style="color:#e8edf5;">${supplierName}</strong> — ${repName} is due in ${isToday ? "today" : "tomorrow"}.
-        There ${gaps.length === 1 ? "is" : "are"} <strong style="color:#00e5b0;">${gaps.length} open gap${gaps.length === 1 ? "" : "s"}</strong> to raise.
-      </p>
-      <table style="width:100%;border-collapse:collapse;border:1px solid #1e2430;border-radius:8px;overflow:hidden;">
-        <thead>
-          <tr style="background:#131720;">
-            <th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Product</th>
-            <th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Location</th>
-            <th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Priority</th>
-            <th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Notes</th>
-          </tr>
-        </thead>
-        <tbody>${gapRows}</tbody>
-      </table>
+      <h2 style="color:#e8edf5;font-size:20px;margin:0 0 4px;">Morning Summary — ${todayDay}</h2>
+      <p style="color:#9ba8bb;font-size:14px;margin:0;">Reps due in today, and the open gaps and near-code items to raise with them.</p>
+
+      ${section(
+        "Reps due in today",
+        `<th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Rep</th>
+         <th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Phone</th>`,
+        repRows,
+        "No reps due in today."
+      )}
+
+      ${section(
+        "Gaps to raise",
+        `<th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Product</th>
+         <th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Supplier</th>
+         <th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Location</th>
+         <th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Priority</th>`,
+        gapRows,
+        "No open gaps for today's reps."
+      )}
+
+      ${section(
+        "Near-code items",
+        `<th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Product</th>
+         <th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Supplier</th>
+         <th style="padding:10px 12px;text-align:left;color:#5a6478;font-size:11px;letter-spacing:1px;text-transform:uppercase;">Use By</th>`,
+        codeRows,
+        "No near-code items for today's reps."
+      )}
     </div>
     <p style="color:#5a6478;font-size:12px;text-align:center;">ShelfAlert · Automated reminder · Do not reply to this email</p>
   </div>
@@ -167,7 +207,6 @@ Deno.serve(async (_req) => {
     const [notifHour] = notif_time.split(":").map(Number);
     const currentHour = getCurrentHourInTimezone(timezone);
     const todayDay = getCurrentDayInTimezone(timezone);
-    const tomorrowDay = getTomorrowDayInTimezone(timezone);
 
     // Only run at the configured notification hour
     if (currentHour !== notifHour) {
@@ -181,75 +220,78 @@ Deno.serve(async (_req) => {
       return new Response("Email sender or recipient is not configured", { status: 503 });
     }
 
-    // Load all suppliers with open gaps
+    // Reps (suppliers) due in today
     const { data: suppliers } = await supabase
       .from("suppliers")
-      .select("*");
+      .select("*")
+      .eq("visit_day", todayDay);
 
-    let emailsSent = 0;
-    let emailsFailed = 0;
+    const repsToday = suppliers || [];
 
-    for (const supplier of suppliers || []) {
-      const isToday = supplier.visit_day === todayDay;
-      const isTomorrow = supplier.visit_day === tomorrowDay;
+    if (repsToday.length === 0) {
+      await markMissedReminders(timezone);
+      return new Response("No reps due in today", { status: 200 });
+    }
 
-      if (!isToday && !isTomorrow) continue;
+    const supplierIds = repsToday.map((s) => s.id);
 
-      // Load open gaps for this supplier
-      const { data: gaps } = await supabase
-        .from("gaps")
-        .select("*")
-        .eq("supplier_id", supplier.id)
-        .in("status", ["open", "missed"]);
+    // Open gaps from today's reps
+    const { data: allGaps } = await supabase
+      .from("gaps")
+      .select("*")
+      .in("supplier_id", supplierIds)
+      .in("status", ["open", "missed"]);
 
-      if (!gaps || gaps.length === 0) continue;
+    // Near-code items from today's reps
+    const { data: allCodeItems } = await supabase
+      .from("close_to_code")
+      .select("*")
+      .in("supplier_id", supplierIds)
+      .eq("status", "active");
 
-      // Build and send email via Resend
-      const subject = isToday
-        ? `[ShelfAlert] ${supplier.name} rep is in TODAY — ${gaps.length} open gap${gaps.length === 1 ? "" : "s"}`
-        : `[ShelfAlert] ${supplier.name} rep due TOMORROW — ${gaps.length} open gap${gaps.length === 1 ? "" : "s"}`;
+    const reps = repsToday.map((supplier) => ({
+      supplier,
+      gaps: (allGaps || []).filter((g) => g.supplier_id === supplier.id),
+      codeItems: (allCodeItems || []).filter((c) => c.supplier_id === supplier.id),
+    }));
 
-      const html = buildEmailHtml(
-        supplier.name,
-        supplier.contact,
-        gaps,
-        isToday
-      );
+    const totalGaps = reps.reduce((sum, r) => sum + r.gaps.length, 0);
 
-      const emailRes = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: EMAIL_FROM,
-          reply_to: EMAIL_REPLY_TO,
-          to: [store_email],
-          subject,
-          html,
-        }),
+    const subject = `[ShelfAlert] Morning summary — ${repsToday.length} rep${repsToday.length === 1 ? "" : "s"} due in today, ${totalGaps} open gap${totalGaps === 1 ? "" : "s"}`;
+    const html = buildSummaryEmailHtml(reps, todayDay);
+
+    const emailRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: EMAIL_FROM,
+        reply_to: EMAIL_REPLY_TO,
+        to: [store_email],
+        subject,
+        html,
+      }),
+    });
+
+    let emailSent = false;
+    if (emailRes.ok) {
+      emailSent = true;
+      await supabase.from("notifications").insert({
+        type: "urgent",
+        text: `Morning summary sent to ${store_email} — ${repsToday.length} rep${repsToday.length === 1 ? "" : "s"} due in today, ${totalGaps} open gap${totalGaps === 1 ? "" : "s"}.`,
       });
-
-      if (emailRes.ok) {
-        emailsSent++;
-        // Create in-app notification too
-        await supabase.from("notifications").insert({
-          type: isToday ? "urgent" : "warning",
-          text: `${supplier.name} rep ${isToday ? "TODAY" : "TOMORROW"} — ${gaps.length} open gap${gaps.length === 1 ? "" : "s"}. Email sent to ${store_email}.`,
-        });
-      } else {
-        emailsFailed++;
-        console.error("Resend rejected notification", emailRes.status, await emailRes.text());
-      }
+    } else {
+      console.error("Resend rejected notification", emailRes.status, await emailRes.text());
     }
 
     // Run missed-item reminder check
     await markMissedReminders(timezone);
 
     return new Response(
-      JSON.stringify({ ok: emailsFailed === 0, emailsSent, emailsFailed }),
-      { status: emailsFailed ? 502 : 200, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ ok: emailSent, emailSent }),
+      { status: emailSent ? 200 : 502, headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error(err);

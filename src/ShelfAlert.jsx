@@ -119,11 +119,14 @@ const CREDIT_STATUS_META = {
 const STATUS_META = {
   missed:              { label: "Missed",       bg: "var(--danger-bg)", text: "var(--danger)", border: "var(--danger-border)" },
   ordered:             { label: "Ordered",      bg: "var(--positive-bg)", text: "var(--positive)", border: "var(--positive-border)" },
+  awaiting_arrival:    { label: "Awaiting Arrival", bg: "var(--info-bg)", text: "var(--info)", border: "var(--info-border)" },
   unavailable:         { label: "Unavailable",  bg: "var(--warning-bg)", text: "var(--warning)", border: "var(--warning-border)" },
   open:                { label: "Open",         bg: "var(--info-bg)", text: "var(--info)", border: "var(--info-border)" },
   deletion_confirmed:  { label: "Deletion",  bg: "var(--purple-bg)", text: "var(--purple)", border: "var(--purple-border)" },
-  deletion_followup:   { label: "Follow Up",   bg: "var(--orange-bg)", text: "var(--orange)", border: "var(--orange-border)" },
+  deletion_followup:   { label: "Possible Deletion",   bg: "var(--orange-bg)", text: "var(--orange)", border: "var(--orange-border)" },
 };
+// Gaps in these statuses are finalised and have left the active Gaps page.
+const RESOLVED_GAP_STATUSES = ["ordered", "deletion_confirmed"];
 const CODE_STATUS_META = {
   active:      { label: "Active",      bg: "var(--info-bg)", text: "var(--info)", border: "var(--info-border)" },
   marked_down: { label: "Marked Down", bg: "var(--warning-bg)", text: "var(--warning)", border: "var(--warning-border)" },
@@ -351,11 +354,12 @@ function LoginScreen({ onLogin }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onDismissNotif, onLogGap, onViewGaps, timezone }) {
+function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onDismissNotif, onLogGap, onAddCode, onAddTheft, onViewGaps, timezone }) {
   const [previewImage, setPreviewImage] = useState(null);
   const today = new Intl.DateTimeFormat("en-AU", { weekday: "long", timeZone: timezone }).format(new Date());
   const tmrw  = new Intl.DateTimeFormat("en-AU", { weekday: "long", timeZone: timezone }).format(new Date(Date.now() + 86400000));
-  const open = gaps.filter(g => g.status !== "ordered");
+  const open = gaps.filter(g => !RESOLVED_GAP_STATUSES.includes(g.status));
+  const recentGaps = gaps.filter(g => g.status !== "deletion_confirmed");
   const priorityGaps = open.filter(g => g.priority === "high" || g.status === "missed");
   const urgentCode = codeItems.filter(c => c.status === "active" && getCodeAlert(c.useByDate));
   const pendingCredits = credits.filter(c => ["pending","confirmed"].includes(c.status));
@@ -369,7 +373,11 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
           <h2 style={{ fontSize: 21, lineHeight: 1.2, color: "var(--t1)", margin: 0 }}>What needs attention</h2>
           <p style={{ color: "var(--t2)", fontSize: 14, marginTop: 5 }}>Rep visits, urgent dates and open gaps for your store.</p>
         </div>
-        <button type="button" onClick={onLogGap} style={{ ...BP, display: "flex", alignItems: "center", gap: 8, minHeight: 44 }}><Icon d={IC.plus} size={17} /> Log gap</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" onClick={onLogGap} style={{ ...BP, display: "flex", alignItems: "center", gap: 8, minHeight: 44 }}><Icon d={IC.plus} size={17} /> Log gap</button>
+          <button type="button" onClick={onAddCode} style={{ ...BS, display: "flex", alignItems: "center", gap: 8, minHeight: 44 }}><Icon d={IC.plus} size={17} /> Near Code</button>
+          <button type="button" onClick={onAddTheft} style={{ ...BS, display: "flex", alignItems: "center", gap: 8, minHeight: 44 }}><Icon d={IC.plus} size={17} /> Theft</button>
+        </div>
       </div>
       {repSchedule.length === 0 && urgentCode.length === 0 && notifs.filter(n => !n.read).length === 0 && (
         <Card style={{ marginBottom: 24, background: "var(--positive-bg)", borderColor: "var(--positive-border)" }}>
@@ -381,7 +389,8 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
         <div style={{ marginTop: 24, marginBottom: 24 }}>
           <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 10 }}>Rep Schedule</h3>
           {repSchedule.map(s => {
-            const rg = gaps.filter(g => g.supplierId === s.id && g.status !== "ordered").length;
+            const rg = gaps.filter(g => g.supplierId === s.id && !RESOLVED_GAP_STATUSES.includes(g.status)).length;
+            const followUps = gaps.filter(g => g.supplierId === s.id && g.status === "deletion_followup").length;
             const repCreditTotal = credits.filter(c => c.supplierId === s.id && ["pending","confirmed"].includes(c.status)).reduce((sum, c) => sum + (parseFloat(c.value) || 0), 0);
             return (
               <Card key={s.id + s.when} style={{ marginBottom: 8 }}>
@@ -394,9 +403,17 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
                     <div style={{ fontSize: 12, color: "var(--tm)" }}>{s.contact} · {s.phone}</div>
                     {repCreditTotal > 0 && <div style={{ fontSize: 12, color: "var(--positive)", marginTop: 4 }}>{fmt$(repCreditTotal)} outstanding credits to claim</div>}
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: rg > 0 ? "var(--danger)" : "var(--positive)", fontFamily: "var(--fd)" }}>{rg}</div>
-                    <div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>OPEN GAPS</div>
+                  <div style={{ display: "flex", gap: 16 }}>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: rg > 0 ? "var(--danger)" : "var(--positive)", fontFamily: "var(--fd)" }}>{rg}</div>
+                      <div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>OPEN GAPS</div>
+                    </div>
+                    {followUps > 0 && (
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: "var(--orange)", fontFamily: "var(--fd)" }}>{followUps}</div>
+                        <div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>FOLLOW UPS</div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -451,8 +468,8 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
         <h3 style={{ fontFamily: "var(--fd)", fontSize: 13, color: "var(--tm)", textTransform: "uppercase", letterSpacing: 2 }}>Recent Gaps</h3>
         <button type="button" onClick={onViewGaps} style={{ ...BS, padding: "6px 10px", fontSize: 12 }}>View all gaps</button>
       </div>
-      {gaps.length === 0 && <div style={{ textAlign: "center", color: "var(--tm)", padding: 32, fontSize: 14 }}>No gaps logged yet</div>}
-      {gaps.slice(0, 5).map(g => {
+      {recentGaps.length === 0 && <div style={{ textAlign: "center", color: "var(--tm)", padding: 32, fontSize: 14 }}>No gaps logged yet</div>}
+      {recentGaps.slice(0, 5).map(g => {
         const sup = suppliers.find(s => s.id === g.supplierId);
         return (
           <Card key={g.id} style={{ marginBottom: 8 }}>
@@ -464,7 +481,7 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
                 <Badge status={g.status} />
-                {g.status !== "ordered" && <div style={{ display: "flex", gap: 6 }}><button onClick={() => onResolve(g.id, "ordered")} style={{ ...BP, padding: "4px 10px", fontSize: 11 }}>Ordered</button><button onClick={() => onResolve(g.id, "unavailable")} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}>Unavail.</button></div>}
+                <GapActions gap={g} onResolve={onResolve} compact />
               </div>
             </div>
           </Card>
@@ -487,15 +504,66 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
   );
 }
 
+// ─── GAP WORKFLOW ACTIONS ─────────────────────────────────────────────────────
+// Ordered → "Has the stock arrived?" Yes/No. No → "Has it been re-ordered?"
+// Yes/No, which loops back to the arrival question until Yes confirms arrival.
+function GapActions({ gap, onResolve, compact }) {
+  const [confirmReorder, setConfirmReorder] = useState(false);
+  const [deletionOpen, setDeletionOpen] = useState(false);
+  const btn = compact ? { padding: "4px 10px", fontSize: 11 } : { padding: "5px 12px", fontSize: 12 };
+
+  if (gap.status === "deletion_confirmed" || gap.status === "deletion_followup") return null;
+
+  if (gap.status === "awaiting_arrival") {
+    if (confirmReorder) {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-end" }}>
+          <span style={{ fontSize: 11, color: "var(--tm)", textAlign: "right" }}>Has the stock been re-ordered?</span>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={() => setConfirmReorder(false)} style={{ ...BP, ...btn }}>Yes</button>
+            <button onClick={() => setConfirmReorder(false)} style={{ ...BS, ...btn }}>No</button>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-end" }}>
+        <span style={{ fontSize: 11, color: "var(--tm)", textAlign: "right" }}>Has the stock arrived?</span>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => onResolve(gap.id, "ordered")} style={{ ...BP, ...btn }}>Yes</button>
+          <button onClick={() => setConfirmReorder(true)} style={{ ...BS, ...btn }}>No</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (deletionOpen) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <button onClick={() => { onResolve(gap.id, "deletion_confirmed"); setDeletionOpen(false); }} style={{ background: "var(--purple-bg)", color: "var(--purple)", border: "1px solid var(--purple-border)", borderRadius: 8, ...btn, cursor: "pointer", fontFamily: "var(--fb)" }}>Confirmed</button>
+        <button onClick={() => { onResolve(gap.id, "deletion_followup"); setDeletionOpen(false); }} style={{ background: "var(--orange-bg)", color: "var(--orange)", border: "1px solid var(--orange-border)", borderRadius: 8, ...btn, cursor: "pointer", fontFamily: "var(--fb)" }}>Follow Up</button>
+        <button onClick={() => setDeletionOpen(false)} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}><Icon d={IC.x} size={14} /></button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <button onClick={() => onResolve(gap.id, "awaiting_arrival")} style={{ ...BP, ...btn }}>Ordered</button>
+      {gap.status !== "unavailable" && <button onClick={() => onResolve(gap.id, "unavailable")} style={{ ...BS, ...btn }}>Unavailable</button>}
+      {!compact && <button onClick={() => setDeletionOpen(true)} style={{ background: "var(--purple-bg)", color: "var(--purple)", border: "1px solid var(--purple-border)", borderRadius: 8, ...btn, cursor: "pointer", fontFamily: "var(--fb)" }}>Deletion</button>}
+    </div>
+  );
+}
+
 // ─── GAPS VIEW ────────────────────────────────────────────────────────────────
 function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
   const [filter, setFilter] = useState("all");
   const [supFilter, setSupFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [deletionOpen, setDeletionOpen] = useState(null);
   const [enlargedImage, setEnlargedImage] = useState(null);
-  const filtered = gaps.filter(g => (filter === "all" || g.status === filter) && (supFilter === "all" || g.supplierId === supFilter) && matchesSearch(search, g.description, g.stockCode, g.notes, g.aisle, suppliers.find(s => s.id === g.supplierId)?.name));
-  const FILTERS = ["all","open","missed","ordered","unavailable","deletion_confirmed","deletion_followup"];
+  const filtered = gaps.filter(g => g.status !== "deletion_confirmed" && (filter === "all" || g.status === filter) && (supFilter === "all" || g.supplierId === supFilter) && matchesSearch(search, g.description, g.stockCode, g.notes, g.aisle, suppliers.find(s => s.id === g.supplierId)?.name));
+  const FILTERS = ["all","open","missed","awaiting_arrival","ordered","unavailable","deletion_followup"];
   return (
     <div>
       <div className="list-toolbar"><ListSearch label="Search gaps" placeholder="Search products, suppliers or aisles" value={search} onChange={setSearch} /><button onClick={onAdd} style={{ ...BP, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}><Icon d={IC.plus} size={15} /> Log Gap</button></div>
@@ -511,39 +579,22 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
       {filtered.length === 0 && <div style={{ textAlign: "center", color: "var(--tm)", padding: 40, fontSize: 14 }}>{gaps.length ? "No gaps match your search or filters." : "No gaps logged yet. Use Log Gap to add one."}</div>}
       {filtered.map(g => {
         const sup = suppliers.find(s => s.id === g.supplierId);
-        const isDeletionStatus = g.status === "deletion_confirmed" || g.status === "deletion_followup";
         return (
-          <Card key={g.id} style={{ marginBottom: 10 }}>
+          <Card key={g.id} style={{ marginBottom: 10, position: "relative" }}>
+            <button onClick={() => onDelete(g.id)} aria-label={`Delete ${g.description}`} title="Delete" style={{ position: "absolute", top: 10, right: 10, background: "none", border: "none", cursor: "pointer", color: "var(--tm)", padding: 4, lineHeight: 0 }}><Icon d={IC.x} size={16} /></button>
             <div className="list-row" style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
               {g.imageUrl && (
                 <img src={g.imageUrl} alt="" onClick={() => setEnlargedImage(g.imageUrl)}
                   style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0, cursor: "zoom-in" }} />
               )}
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ flex: 1, minWidth: 0, paddingRight: 24 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}><Dot priority={g.priority} /><span style={{ fontWeight: 700, fontSize: 15, color: "var(--t1)" }}>{g.description}</span><Badge status={g.status} />{g.priority === "high" && <span style={{ fontSize: 10, color: "var(--danger)", fontFamily: "var(--fm)", letterSpacing: 1 }}>HIGH PRIORITY</span>}</div>
                 <div style={{ fontSize: 12, color: "var(--tm)", marginBottom: 6, display: "flex", flexWrap: "wrap", gap: "4px 14px" }}><span>{sup?.name||"—"}</span>{g.stockCode && <span>Stock {g.stockCode}</span>}<span>{fmtLocation(g.aisle, g.bay)}</span><span>{g.loggedBy}</span><span>{fmtDate(g.loggedAt)}</span></div>
                 {g.notes && <div style={{ fontSize: 12, color: "var(--t2)", background: "var(--ib)", borderRadius: 6, padding: "6px 10px" }}>"{g.notes}"</div>}
                 {g.unavailableUntil && <div style={{ fontSize: 11, color: "var(--warning)", marginTop: 4 }}>Expected back: {fmtDate(g.unavailableUntil)}</div>}
               </div>
-              <div className="list-row-actions" style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-                {!isDeletionStatus && g.status !== "ordered" && (
-                  <button onClick={() => onResolve(g.id, "ordered")} style={{ ...BP, padding: "5px 12px", fontSize: 12 }}>Ordered</button>
-                )}
-                {!isDeletionStatus && (
-                  <button onClick={() => onResolve(g.id, "unavailable")} style={{ ...BS, padding: "5px 12px", fontSize: 12 }}>Unavailable</button>
-                )}
-                {!isDeletionStatus && (
-                  deletionOpen === g.id ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                      <button onClick={() => { onResolve(g.id, "deletion_confirmed"); setDeletionOpen(null); }} style={{ background: "var(--purple-bg)", color: "var(--purple)", border: "1px solid var(--purple-border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Confirmed</button>
-                      <button onClick={() => { onResolve(g.id, "deletion_followup"); setDeletionOpen(null); }} style={{ background: "var(--orange-bg)", color: "var(--orange)", border: "1px solid var(--orange-border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Follow Up</button>
-                      <button onClick={() => setDeletionOpen(null)} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}><Icon d={IC.x} size={14} /></button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setDeletionOpen(g.id)} style={{ background: "var(--purple-bg)", color: "var(--purple)", border: "1px solid var(--purple-border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Deletion</button>
-                  )
-                )}
-                <button onClick={() => onDelete(g.id)} style={{ ...BD, padding: "5px 12px", fontSize: 12 }}>Delete</button>
+              <div className="list-row-actions" style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, paddingTop: 26 }}>
+                <GapActions gap={g} onResolve={onResolve} />
               </div>
             </div>
           </Card>
@@ -693,7 +744,7 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
       {visibleSuppliers.map(s => {
         const isOpen = expanded === s.id;
         const tab = getTab(s.id);
-        const og = gaps.filter(g => g.supplierId === s.id && g.status !== "ordered").length;
+        const og = gaps.filter(g => g.supplierId === s.id && !RESOLVED_GAP_STATUSES.includes(g.status)).length;
         const supCredits = credits.filter(c => c.supplierId === s.id);
         const pendingTotal = supCredits.filter(c => ["pending","confirmed"].includes(c.status)).reduce((sum, c) => sum + (parseFloat(c.value) || 0), 0);
         const repWhen = s.visitDay === today ? "TODAY" : s.visitDay === tmrw ? "TOMORROW" : null;
@@ -741,7 +792,7 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
                     {og > 0 && (
                       <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--b)" }}>
                         <div style={{ fontSize: 12, color: "var(--tm)", marginBottom: 8 }}>Open gaps for this supplier:</div>
-                        {gaps.filter(g => g.supplierId === s.id && g.status !== "ordered").map(g => (
+                        {gaps.filter(g => g.supplierId === s.id && !RESOLVED_GAP_STATUSES.includes(g.status)).map(g => (
                           <div key={g.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><Dot priority={g.priority} /><span style={{ fontSize: 13, color: "var(--t2)", flex: 1 }}>{g.description}</span><span style={{ fontSize: 11, color: "var(--tm)" }}>{fmtLocation(g.aisle, g.bay)}</span><Badge status={g.status} /></div>
                         ))}
                       </div>
@@ -782,6 +833,7 @@ function ReportsView({ gaps, suppliers, credits }) {
     total: gaps.filter(g => g.supplierId === s.id).length,
     ordered: gaps.filter(g => g.supplierId === s.id && g.status === "ordered").length,
     missed: gaps.filter(g => g.supplierId === s.id && g.status === "missed").length,
+    deletions: gaps.filter(g => g.supplierId === s.id && g.status === "deletion_confirmed").length,
     creditTotal: credits.filter(c => c.supplierId === s.id && ["pending","confirmed"].includes(c.status)).reduce((sum, c) => sum + (parseFloat(c.value)||0), 0),
   }));
   const exportCSV = () => {
@@ -799,7 +851,7 @@ function ReportsView({ gaps, suppliers, credits }) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
             <div style={{ fontWeight: 700, color: "var(--t1)", fontSize: 15 }}>{s.name}</div>
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-              {[["Total",s.total,"var(--purple)"],["Ordered",s.ordered,"var(--positive)"],["Missed",s.missed,"var(--danger)"],["Credits",fmt$(s.creditTotal),"var(--positive)"]].map(([l,v,c]) => (
+              {[["Total",s.total,"var(--purple)"],["Ordered",s.ordered,"var(--positive)"],["Missed",s.missed,"var(--danger)"],["Deletions",s.deletions,"var(--purple)"],["Credits",fmt$(s.creditTotal),"var(--positive)"]].map(([l,v,c]) => (
                 <div key={l} style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: c, fontFamily: "var(--fd)" }}>{v}</div><div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)", letterSpacing: 1 }}>{l}</div></div>
               ))}
             </div>
@@ -1719,7 +1771,7 @@ const MOBILE_NAV = [
   { id: "issues", label: "Issues", icon: IC.gap },
   { id: "suppliers", label: "Suppliers", icon: IC.sup },
   { id: "reports", label: "Reports", icon: IC.report },
-  { id: "more", label: "More", icon: IC.cog },
+  { id: "settings", label: "Settings", icon: IC.cog },
 ];
 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
@@ -2000,7 +2052,7 @@ export default function ShelfAlert() {
   if (!session) return (<><style>{CSS}</style><LoginScreen onLogin={handleLogin} /></>);
 
   const urgentCodeCount = codeItems.filter(c => c.status === "active" && getCodeAlert(c.useByDate)).length;
-  const openGapCount = gaps.filter(g => g.status !== "ordered").length;
+  const openGapCount = gaps.filter(g => !RESOLVED_GAP_STATUSES.includes(g.status)).length;
   const unread = notifs.filter(n => !n.read).length;
   const totalAlerts = unread + urgentCodeCount;
 
@@ -2048,7 +2100,7 @@ export default function ShelfAlert() {
               </div>
               {dataLoading && <Spin />}
             </div>
-            {view === "dashboard" && <Dashboard gaps={gaps} suppliers={suppliers} codeItems={codeItems} credits={credits} notifs={notifs} onResolve={handleResolve} onDismissNotif={handleDismissNotif} onLogGap={() => setShowGapForm(true)} onViewGaps={() => setView("gaps")} timezone={settings.timezone} />}
+            {view === "dashboard" && <Dashboard gaps={gaps} suppliers={suppliers} codeItems={codeItems} credits={credits} notifs={notifs} onResolve={handleResolve} onDismissNotif={handleDismissNotif} onLogGap={() => setShowGapForm(true)} onAddCode={() => setShowCodeForm(true)} onAddTheft={() => setShowTheftForm(true)} onViewGaps={() => setView("gaps")} timezone={settings.timezone} />}
             {view === "gaps"      && <GapsView gaps={gaps} suppliers={suppliers} onAdd={() => setShowGapForm(true)} onResolve={handleResolve} onDelete={handleDeleteGap} />}
             {view === "code"      && <CloseToCodeView items={codeItems} suppliers={suppliers} onAdd={() => setShowCodeForm(true)} onUpdateStatus={handleUpdateCodeStatus} onDelete={handleDeleteCode} />}
             {view === "suppliers" && <SuppliersView suppliers={suppliers} gaps={gaps} credits={credits} onAdd={() => { setEditSup(null); setShowSupForm(true); }} onEdit={s => { setEditSup(s); setShowSupForm(true); }} onDelete={handleDeleteSup} onAddCredit={handleAddCredit} onUpdateCreditStatus={handleUpdateCreditStatus} onDeleteCredit={handleDeleteCredit} />}
@@ -2070,9 +2122,9 @@ export default function ShelfAlert() {
 
       {mobileMenu && <>
         <button className="mobile-menu-scrim" type="button" aria-label="Close menu" onClick={() => setMobileMenu(null)} />
-        <div className="mobile-menu-panel" role="menu" aria-label={mobileMenu === "issues" ? "Issues" : "More"}>
-          <div style={{ fontWeight: 700, padding: "4px 12px 10px", color: "var(--t1)" }}>{mobileMenu === "issues" ? "Issues" : "More"}</div>
-          {(mobileMenu === "issues" ? ["gaps", "code", "theft"] : ["settings"]).map(id => {
+        <div className="mobile-menu-panel" role="menu" aria-label="Issues">
+          <div style={{ fontWeight: 700, padding: "4px 12px 10px", color: "var(--t1)" }}>Issues</div>
+          {["gaps", "code", "theft"].map(id => {
             const item = NAV.find(n => n.id === id);
             return <button key={id} type="button" role="menuitem" onClick={() => { setView(id); setMobileMenu(null); }} style={{ ...BS, display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", border: "none", color: view === id ? "var(--a)" : "var(--t1)", padding: "12px" }}><Icon d={item.icon} size={18} />{item.label}</button>;
           })}
@@ -2080,8 +2132,8 @@ export default function ShelfAlert() {
       </>}
       <nav className="mobile-nav" aria-label="Mobile navigation">
         {MOBILE_NAV.map(n => {
-          const active = n.id === "issues" ? ["gaps", "code", "theft"].includes(view) : n.id === "more" ? view === "settings" : view === n.id;
-          return <button key={n.id} type="button" onClick={() => n.id === "issues" || n.id === "more" ? setMobileMenu(m => m === n.id ? null : n.id) : (setView(n.id), setMobileMenu(null))} aria-current={active ? "page" : undefined} aria-expanded={["issues", "more"].includes(n.id) ? mobileMenu === n.id : undefined} className={`mobile-nav-btn${active ? " active" : ""}`}>
+          const active = n.id === "issues" ? ["gaps", "code", "theft"].includes(view) : view === n.id;
+          return <button key={n.id} type="button" onClick={() => n.id === "issues" ? setMobileMenu(m => m === n.id ? null : n.id) : (setView(n.id), setMobileMenu(null))} aria-current={active ? "page" : undefined} aria-expanded={n.id === "issues" ? mobileMenu === n.id : undefined} className={`mobile-nav-btn${active ? " active" : ""}`}>
             <Icon d={n.icon} size={20} color={active ? "var(--a)" : "var(--tm)"} />
             <span style={{ fontSize: 11, marginTop: 3, fontFamily: "var(--fb)" }}>{n.label}</span>
             {n.id === "dashboard" && totalAlerts > 0 && <span style={{ position: "absolute", top: 3, right: "28%", background: "var(--badge-danger)", color: "#fff", borderRadius: 10, fontSize: 9, fontWeight: 700, padding: "1px 5px" }}>{totalAlerts}</span>}
@@ -2131,7 +2183,7 @@ const CSS = `
     aside{display:none!important;}
     main{margin-left:0!important;max-width:100vw!important;min-width:0;padding:70px 20px calc(96px + env(safe-area-inset-bottom))!important;}
     .mobile-header{display:flex!important;position:fixed;top:0;left:0;right:0;height:56px;background:var(--s);border-bottom:1px solid var(--b);padding:0 16px;align-items:center;justify-content:space-between;z-index:200;}
-    .mobile-nav{display:flex!important;position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--b);z-index:200;padding-bottom:env(safe-area-inset-bottom);}
+    .mobile-nav{display:flex!important;position:fixed!important;bottom:0!important;left:0;right:0;background:var(--s);border-top:1px solid var(--b);z-index:200;padding-bottom:env(safe-area-inset-bottom);transform:translateZ(0);will-change:transform;}
     .mobile-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--tm);font-family:var(--fb);position:relative;padding:8px 0;min-height:56px;transition:color .15s;}
     .mobile-nav-btn.active{color:var(--a);}
     .mobile-nav-btn.active::before{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--a);border-radius:0 0 2px 2px;}
