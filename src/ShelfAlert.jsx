@@ -465,6 +465,7 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
                 <Badge status={g.status} />
                 {g.status !== "ordered" && <div style={{ display: "flex", gap: 6 }}><button onClick={() => onResolve(g.id, "ordered")} style={{ ...BP, padding: "4px 10px", fontSize: 11 }}>Ordered</button><button onClick={() => onResolve(g.id, "unavailable")} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}>Unavail.</button></div>}
+                {g.status === "ordered" && <div style={{ display: "flex", gap: 6 }}><button onClick={() => onResolve(g.id, "arrived")} style={{ ...BP, padding: "4px 10px", fontSize: 11 }}>Arrived</button><button onClick={() => onResolve(g.id, "not_arrived")} style={{ ...BS, padding: "4px 10px", fontSize: 11 }}>Didn't Arrive</button></div>}
               </div>
             </div>
           </Card>
@@ -529,10 +530,14 @@ function GapsView({ gaps, suppliers, onAdd, onResolve, onDelete }) {
                 {!isDeletionStatus && g.status !== "ordered" && (
                   <button onClick={() => onResolve(g.id, "ordered")} style={{ ...BP, padding: "5px 12px", fontSize: 12 }}>Ordered</button>
                 )}
-                {!isDeletionStatus && (
+                {g.status === "ordered" && (<>
+                  <button onClick={() => onResolve(g.id, "arrived")} style={{ ...BP, padding: "5px 12px", fontSize: 12 }}>Arrived</button>
+                  <button onClick={() => onResolve(g.id, "not_arrived")} style={{ ...BS, padding: "5px 12px", fontSize: 12 }}>Didn't Arrive</button>
+                </>)}
+                {!isDeletionStatus && g.status !== "ordered" && (
                   <button onClick={() => onResolve(g.id, "unavailable")} style={{ ...BS, padding: "5px 12px", fontSize: 12 }}>Unavailable</button>
                 )}
-                {!isDeletionStatus && (
+                {!isDeletionStatus && g.status !== "ordered" && (
                   deletionOpen === g.id ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                       <button onClick={() => { onResolve(g.id, "deletion_confirmed"); setDeletionOpen(null); }} style={{ background: "var(--purple-bg)", color: "var(--purple)", border: "1px solid var(--purple-border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontFamily: "var(--fb)" }}>Confirmed</button>
@@ -1846,14 +1851,24 @@ export default function ShelfAlert() {
     setShowGapForm(false);
   };
 
-  const handleResolve = (gapId, status) => { if (status === "unavailable") { setResolveTarget({ gapId, status }); return; } handleResolveConfirm(gapId, status, null); };
+  const handleResolve = (gapId, status) => {
+    if (status === "unavailable") { setResolveTarget({ gapId, status }); return; }
+    if (status === "arrived") { handleDeleteGap(gapId, "Arrived — removed from list"); return; }
+    if (status === "not_arrived") { handleResolveConfirm(gapId, "open", null); return; }
+    handleResolveConfirm(gapId, status, null);
+  };
   const handleResolveConfirm = async (gapId, status, date) => {
-    const res = await sb.update("gaps", session.token, { id: gapId }, { status, resolved_at: status === "ordered" ? new Date().toISOString() : null, unavailable_until: date || null });
+    const res = await sb.update("gaps", session.token, { id: gapId }, { status, unavailable_until: date || null });
     const row = Array.isArray(res) ? res[0] : res;
     if (row?.id) { setGaps(g => g.map(gap => gap.id === gapId ? mapGap(row) : gap)); toast$(`${STATUS_META[status].label}`); }
+    else toast$("Failed to update gap — check console", "error");
     setResolveTarget(null);
   };
-  const handleDeleteGap = async (id) => { await supabase.from("gaps").delete().eq("id", id); setGaps(g => g.filter(gap => gap.id !== id)); toast$("Gap removed"); };
+  const handleDeleteGap = async (id, msg = "Gap removed") => {
+    const { error } = await supabase.from("gaps").delete().eq("id", id);
+    if (error) { console.error("DELETE gaps failed:", error); toast$("Failed to remove gap — check console", "error"); return; }
+    setGaps(g => g.filter(gap => gap.id !== id)); toast$(msg);
+  };
 
   const handleAddCode = async (form) => {
     const body = { description: form.description.trim(), use_by_date: form.useByDate, quantity: form.quantity || null, aisle: form.aisle || null, bay: form.bay || null, supplier_id: form.supplierId || null, notes: form.notes || "", status: "active", logged_by: session.displayName, logged_at: new Date().toISOString() };
