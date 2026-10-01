@@ -17,16 +17,26 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - [x] Replace Graphite & Forest with Navy & Citrus in Settings and throughout the dark theme; keep green only for positive-status signals.
 - [x] Add an editable stock code to Log New Gap, read from the left of the shelf ticket without treating the barcode as a stock code; display it on Today and Gaps. Keep supplier manual.
 - [x] Read aisle and bay from the two-number code below the printed date on green shelf tickets (for example `03-33` → aisle 3, bay 33), with an editable preview and support for bays beyond the default configured list.
+- [x] Add an "Ordered" follow-up loop to Gaps: "Has the stock arrived?" Yes/No; No asks "Has it been re-ordered?" and loops back to the arrival question either way; Yes removes the gap from the active list.
+- [x] Hide the "Unavailable" button once a gap is already marked unavailable.
+- [x] Deletion → Confirmed now removes the gap from the Gaps page and counts as a Deletion on the Supplier's Reports card. Deletion → Follow Up relabels the gap "Possible Deletion" and adds a Follow Up counter to the rep's Today card.
+- [x] Replace the Gaps card "Delete" button with a small X in the top-right corner of the card, so it can't be confused with the "Deletion" workflow.
+- [x] Harden the mobile bottom nav's fixed positioning (GPU compositing hint) so it stays docked at the bottom on the longest page in the app, High Theft Items.
+- [x] Collapse the mobile "More" tab into a direct "Settings" tab, since Settings was its only destination.
+- [x] Add "+ Near Code" and "+ Theft" quick-action buttons next to "+ Log gap" on Today.
 
 ## Email notifications
 
 - [ ] Choose and configure an authenticated sender. Requested sender: `Jerichosams@gmail.com`. Resend cannot impersonate a personal Gmail address; use Gmail OAuth/SMTP with appropriate Google credentials, or a verified domain address with Gmail as reply-to. **Blocked on sender method and credentials.**
 - [x] Remove the invalid hard-coded `noreply@shelfalert.app` sender. Require `EMAIL_FROM` (a Resend-verified sender), set Gmail as reply-to, and return a failure when the provider rejects an email. This does **not** enable sending until the provider is configured.
+- [x] Replace the per-rep morning emails with a single daily summary: reps due in today (name and phone), open gaps from those reps, and near-code items (with use-by dates) from those reps.
 - [ ] Deploy the Supabase `send-rep-alerts` function and create an hourly scheduled invocation; confirm it runs in the production project.
 - [ ] Report provider errors and show the last attempt and delivery result in Settings; add a test-send control.
 - [ ] Avoid repeat emails within the same notification window; test today/tomorrow and timezone boundaries.
 
 ## Notes
+
+- 2026-09-28: Added the Ordered arrival/re-order follow-up loop, hid the Unavailable button once already unavailable, moved Deletion → Confirmed off the Gaps page and into the Supplier's Reports card, relabelled Deletion → Follow Up as "Possible Deletion" with a Today follow-up counter, swapped the Gaps card Delete button for a top-right X, hardened the mobile bottom nav's fixed positioning, collapsed the mobile More tab into Settings, and added Near Code/Theft quick buttons to Today. Also rewrote `send-rep-alerts` to send one daily summary email (today's reps with phone numbers, their open gaps, and their near-code items with use-by dates) instead of one email per rep. `CI=true npm run build` and `npm test` pass; verified the new gap-status flow and Today quick buttons with a mocked-Supabase interaction test, then removed that scratch test.
 
 - 2026-09-26: Responsive layout pass: switch from the 220px sidebar to compact navigation below 901px, preserve safe-area room below content, allow supplier tabs/actions to wrap, fit modals within phone height, prevent toast overflow, and stack aisle/bay fields below 381px. Build verification completed; a signed-in phone/tablet/desktop visual pass is still needed before checking this item complete.
 
@@ -44,3 +54,5 @@ When Jericho says **“Next change”**, read this file, take the first unfinish
 - 2026-09-26: Added stock-code recognition from a separate far-left ticket crop. The supplied photo yields `S346039` at 87% confidence; short alphanumeric codes are accepted without requiring an S prefix, while long barcodes are excluded. The code is saved in a structured prefix of the existing gap notes because this repo has no production database migration access; it is parsed back into its own UI field and hidden from ordinary notes. Supplier remains manually selected.
 - 2026-09-26: Location OCR now isolates the `03-33` row under the print date. The colour crop misread the final 3 as 8 despite high confidence; thresholding the crop produced `03-33` at 95% confidence in local testing. Suggested bay 33 is made selectable even when the store's configured bay count is lower. Users should verify the preview.
 - 2026-09-25: Jericho selected Navy & Citrus. The dark theme now uses navy surfaces and citrus accents; primary, secondary and muted text and button combinations were checked for contrast. Stone & Forest remains the light option.
+
+- Ordered gaps now show "Arrived" (removes the gap) and "Didn't Arrive" (returns it to Open). The Ordered update no longer writes `resolved_at`, and gap update/delete failures show an error toast.
