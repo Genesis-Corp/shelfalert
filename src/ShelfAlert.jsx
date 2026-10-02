@@ -157,7 +157,7 @@ const mapGap = (g) => ({
 });
 const mapSupplier = (s) => ({
   id: s.id, name: s.name, contact: s.contact || "", phone: s.phone || "",
-  visitDay: s.visit_day || "Monday", frequency: s.frequency || "weekly",
+  visitDay: s.visit_day || "Monday", deliveryDay: s.delivery_day || "", frequency: s.frequency || "weekly",
 });
 const mapCode = (c) => ({
   id: c.id, description: c.description, useByDate: c.use_by_date,
@@ -354,7 +354,7 @@ function LoginScreen({ onLogin }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onDismissNotif, onLogGap, onAddCode, onAddTheft, onViewGaps, timezone }) {
+function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onDismissNotif, onLogGap, onAddCode, onAddTheft, onViewGaps, onViewSupplier, timezone }) {
   const [previewImage, setPreviewImage] = useState(null);
   const today = new Intl.DateTimeFormat("en-AU", { weekday: "long", timeZone: timezone }).format(new Date());
   const tmrw  = new Intl.DateTimeFormat("en-AU", { weekday: "long", timeZone: timezone }).format(new Date(Date.now() + 86400000));
@@ -398,7 +398,7 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                       <span style={{ fontSize: 10, fontWeight: 800, color: s.when === "TODAY" ? "var(--orange)" : "var(--warning)", fontFamily: "var(--fm)", letterSpacing: 1, background: s.when === "TODAY" ? "var(--orange-bg)" : "var(--warning-bg)", padding: "2px 8px", borderRadius: 10 }}>{s.when}</span>
-                      <span style={{ fontWeight: 700, color: "var(--t1)", fontSize: 15 }}>{s.name}</span>
+                      <button onClick={() => onViewSupplier(s.id)} aria-label={`View ${s.name} in Suppliers`} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontWeight: 700, color: "var(--t1)", fontSize: 15, fontFamily: "inherit", textDecoration: "underline", textDecorationColor: "var(--b)", textUnderlineOffset: 3 }}>{s.name}</button>
                     </div>
                     <div style={{ fontSize: 12, color: "var(--tm)" }}>{s.contact} · {s.phone}</div>
                     {repCreditTotal > 0 && <div style={{ fontSize: 12, color: "var(--positive)", marginTop: 4 }}>{fmt$(repCreditTotal)} outstanding credits to claim</div>}
@@ -710,16 +710,22 @@ function CreditSection({ type, credits, supplierId, onAdd, onUpdateStatus, onDel
 }
 
 // ─── SUPPLIERS VIEW ───────────────────────────────────────────────────────────
-function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAddCredit, onUpdateCreditStatus, onDeleteCredit }) {
+function SuppliersView({ suppliers, gaps, credits, focusId, onFocusHandled, onAdd, onEdit, onDelete, onAddCredit, onUpdateCreditStatus, onDeleteCredit }) {
   const [expanded, setExpanded] = useState(null);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState({});
+  useEffect(() => {
+    if (!focusId) return;
+    setSearch(""); setExpanded(focusId);
+    onFocusHandled();
+    requestAnimationFrame(() => document.getElementById(`supplier-${focusId}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [focusId]); // eslint-disable-line react-hooks/exhaustive-deps
   const toggle = (id) => setExpanded(e => e === id ? null : id);
   const getTab = (id) => activeTab[id] || "details";
   const setTab = (id, tab) => setActiveTab(t => ({ ...t, [id]: tab }));
   const today = new Intl.DateTimeFormat("en-AU", { weekday: "long" }).format(new Date());
   const tmrw  = new Intl.DateTimeFormat("en-AU", { weekday: "long" }).format(new Date(Date.now() + 86400000));
-  const visibleSuppliers = suppliers.filter(s => matchesSearch(search, s.name, s.contact, s.phone, s.visitDay));
+  const visibleSuppliers = suppliers.filter(s => matchesSearch(search, s.name, s.contact, s.phone, s.visitDay, s.deliveryDay));
 
   return (
     <div>
@@ -738,14 +744,14 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
         const repWhen = s.visitDay === today ? "TODAY" : s.visitDay === tmrw ? "TOMORROW" : null;
 
         return (
-          <div key={s.id} style={{ marginBottom: 10 }}>
+          <div key={s.id} id={`supplier-${s.id}`} style={{ marginBottom: 10, scrollMarginTop: 12 }}>
             <div role="button" tabIndex={0} aria-expanded={isOpen} aria-label={`${s.name} supplier details`} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(s.id); } }} onClick={() => toggle(s.id)} style={{ background: "var(--c)", border: `1px solid ${isOpen ? "var(--a)" : "var(--b)"}`, borderRadius: isOpen ? "12px 12px 0 0" : 12, padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, transition: "border-color .2s" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontWeight: 700, fontSize: 16, color: "var(--t1)" }}>{s.name}</span>
                   {repWhen && <span style={{ fontSize: 10, fontWeight: 800, color: repWhen === "TODAY" ? "var(--orange)" : "var(--warning)", fontFamily: "var(--fm)", letterSpacing: 1, background: repWhen === "TODAY" ? "var(--orange-bg)" : "var(--warning-bg)", padding: "2px 8px", borderRadius: 10 }}>REP {repWhen}</span>}
                 </div>
-                <div style={{ fontSize: 12, color: "var(--tm)", marginTop: 2 }}>{s.visitDay} · <span style={{ textTransform: "capitalize" }}>{s.frequency}</span></div>
+                <div style={{ fontSize: 12, color: "var(--tm)", marginTop: 2 }}>{s.visitDay}{s.deliveryDay && ` · Delivers ${s.deliveryDay}`} · <span style={{ textTransform: "capitalize" }}>{s.frequency}</span></div>
               </div>
               <div style={{ display: "flex", gap: 16, alignItems: "center", flexShrink: 0 }}>
                 {pendingTotal > 0 && <div style={{ textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: "var(--positive)", fontFamily: "var(--fd)" }}>{fmt$(pendingTotal)}</div><div style={{ fontSize: 10, color: "var(--tm)", fontFamily: "var(--fm)" }}>CREDITS</div></div>}
@@ -773,7 +779,7 @@ function SuppliersView({ suppliers, gaps, credits, onAdd, onEdit, onDelete, onAd
                 {tab === "details" && (
                   <div style={{ padding: "20px" }}>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14 }}>
-                      {[["Rep Name", s.contact], ["Phone", s.phone], ["Visit Day", s.visitDay], ["Frequency", s.frequency]].map(([l, v]) => v ? (
+                      {[["Rep Name", s.contact], ["Phone", s.phone], ["Visit Day", s.visitDay], ["Delivery Day", s.deliveryDay], ["Frequency", s.frequency]].map(([l, v]) => v ? (
                         <div key={l}><div style={{ fontSize: 11, color: "var(--tm)", fontFamily: "var(--fm)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>{l}</div><div style={{ fontSize: 14, color: "var(--t1)", fontWeight: 600 }}>{v}</div></div>
                       ) : null)}
                     </div>
@@ -1106,7 +1112,7 @@ function CreditForm({ type, onSave, onClose }) {
 }
 
 function SupplierForm({ supplier, onSave, onClose }) {
-  const [f, setF] = useState(supplier || { name: "", contact: "", phone: "", visitDay: "Monday", frequency: "weekly" });
+  const [f, setF] = useState(supplier || { name: "", contact: "", phone: "", visitDay: "Monday", deliveryDay: "", frequency: "weekly" });
   const [saving, setSaving] = useState(false);
   const s = (k, v) => setF(p => ({ ...p, [k]: v }));
   const canSave = f.name.trim().length > 0;
@@ -1133,8 +1139,9 @@ function SupplierForm({ supplier, onSave, onClose }) {
       <Field label="Company / Supplier Name"><input style={IS} placeholder="e.g. Patties Foods" value={f.name} onChange={e => s("name", e.target.value)} /></Field>
       <Field label="Rep Name (optional)"><input style={IS} placeholder="e.g. Mark Reynolds" value={f.contact} onChange={e => s("contact", e.target.value)} /></Field>
       <Field label="Phone (optional)"><input style={IS} placeholder="e.g. 0412 000 111" value={f.phone} onChange={e => s("phone", e.target.value)} /></Field>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 14 }}>
         <Field label="Visit Day"><select style={IS} value={f.visitDay} onChange={e => s("visitDay", e.target.value)}>{DAYS.map(d => <option key={d}>{d}</option>)}</select></Field>
+        <Field label="Delivery Day (optional)"><select style={IS} value={f.deliveryDay || ""} onChange={e => s("deliveryDay", e.target.value)}><option value="">— None —</option>{DAYS.map(d => <option key={d}>{d}</option>)}</select></Field>
         <Field label="Frequency"><select style={IS} value={f.frequency} onChange={e => s("frequency", e.target.value)}>{FREQS.map(fr => <option key={fr} value={fr}>{fr.charAt(0).toUpperCase()+fr.slice(1)}</option>)}</select></Field>
       </div>
       <div style={{ display: "flex", gap: 10 }}>
@@ -1794,6 +1801,7 @@ export default function ShelfAlert() {
   const [view, setView] = useState("dashboard");
   const [mobileMenu, setMobileMenu] = useState(null);
   const [suppliers, setSuppliers] = useState([]);
+  const [focusSupId, setFocusSupId] = useState(null);
   const [gaps, setGaps] = useState([]);
   const [codeItems, setCodeItems] = useState([]);
   const [credits, setCredits] = useState([]);
@@ -1952,7 +1960,7 @@ export default function ShelfAlert() {
   const handleDeleteCredit = async (id) => { await supabase.from("supplier_credits").delete().eq("id", id); setCredits(c => c.filter(cr => cr.id !== id)); toast$("Credit removed"); };
 
   const handleSaveSup = async (form) => {
-    const body = { name: form.name.trim(), contact: form.contact || "", phone: form.phone || "", visit_day: form.visitDay, frequency: form.frequency };
+    const body = { name: form.name.trim(), contact: form.contact || "", phone: form.phone || "", visit_day: form.visitDay, delivery_day: form.deliveryDay || null, frequency: form.frequency };
     if (editSup) {
       const res = await sb.update("suppliers", session.token, { id: editSup.id }, body);
       const row = Array.isArray(res) ? res[0] : res;
@@ -2115,10 +2123,10 @@ export default function ShelfAlert() {
               </div>
               {dataLoading && <Spin />}
             </div>
-            {view === "dashboard" && <Dashboard gaps={gaps} suppliers={suppliers} codeItems={codeItems} credits={credits} notifs={notifs} onResolve={handleResolve} onDismissNotif={handleDismissNotif} onLogGap={() => setShowGapForm(true)} onAddCode={() => setShowCodeForm(true)} onAddTheft={() => setShowTheftForm(true)} onViewGaps={() => setView("gaps")} timezone={settings.timezone} />}
+            {view === "dashboard" && <Dashboard gaps={gaps} suppliers={suppliers} codeItems={codeItems} credits={credits} notifs={notifs} onResolve={handleResolve} onDismissNotif={handleDismissNotif} onLogGap={() => setShowGapForm(true)} onAddCode={() => setShowCodeForm(true)} onAddTheft={() => setShowTheftForm(true)} onViewGaps={() => setView("gaps")} onViewSupplier={id => { setFocusSupId(id); setView("suppliers"); }} timezone={settings.timezone} />}
             {view === "gaps"      && <GapsView gaps={gaps} suppliers={suppliers} onAdd={() => setShowGapForm(true)} onResolve={handleResolve} onDelete={handleDeleteGap} />}
             {view === "code"      && <CloseToCodeView items={codeItems} suppliers={suppliers} onAdd={() => setShowCodeForm(true)} onUpdateStatus={handleUpdateCodeStatus} onDelete={handleDeleteCode} />}
-            {view === "suppliers" && <SuppliersView suppliers={suppliers} gaps={gaps} credits={credits} onAdd={() => { setEditSup(null); setShowSupForm(true); }} onEdit={s => { setEditSup(s); setShowSupForm(true); }} onDelete={handleDeleteSup} onAddCredit={handleAddCredit} onUpdateCreditStatus={handleUpdateCreditStatus} onDeleteCredit={handleDeleteCredit} />}
+            {view === "suppliers" && <SuppliersView suppliers={suppliers} gaps={gaps} credits={credits} focusId={focusSupId} onFocusHandled={() => setFocusSupId(null)} onAdd={() => { setEditSup(null); setShowSupForm(true); }} onEdit={s => { setEditSup(s); setShowSupForm(true); }} onDelete={handleDeleteSup} onAddCredit={handleAddCredit} onUpdateCreditStatus={handleUpdateCreditStatus} onDeleteCredit={handleDeleteCredit} />}
             {view === "reports"   && <ReportsView gaps={gaps} suppliers={suppliers} credits={credits} />}
             {view === "settings"  && <SettingsView settings={settings} depts={depts} onSave={handleSaveSettings} saving={saving} onAddDept={handleAddDept} onUpdateDept={handleUpdateDept} onDeleteDept={handleDeleteDept} theme={theme} onThemeChange={setTheme} />}
             {view === "theft"     && <HighTheftView incidents={theftIncidents} items={theftItems} locations={theftLocations} numAisles={settings.numAisles} numBays={settings.numBays} depts={depts} session={session} onShowForm={() => setShowTheftForm(true)} onAddIncident={handleAddTheftIncident} onAddItem={handleAddTheftItem} onToggleResolved={handleToggleTheftItemResolved} onDeleteIncident={handleDeleteTheftIncident} onAddLocation={handleAddTheftLocation} onDeleteLocation={handleDeleteTheftLocation} />}
