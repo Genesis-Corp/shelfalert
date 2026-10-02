@@ -401,6 +401,7 @@ function Dashboard({ gaps, suppliers, codeItems, credits, notifs, onResolve, onD
                       <button onClick={() => onViewSupplier(s.id)} aria-label={`View ${s.name} in Suppliers`} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontWeight: 700, color: "var(--t1)", fontSize: 15, fontFamily: "inherit", textDecoration: "underline", textDecorationColor: "var(--b)", textUnderlineOffset: 3 }}>{s.name}</button>
                     </div>
                     <div style={{ fontSize: 12, color: "var(--tm)" }}>{s.contact} · {s.phone}</div>
+                    {s.deliveryDay && <div style={{ fontSize: 12, color: "var(--warning)", marginTop: 4 }}>Note: delivers {s.deliveryDay}</div>}
                     {repCreditTotal > 0 && <div style={{ fontSize: 12, color: "var(--positive)", marginTop: 4 }}>{fmt$(repCreditTotal)} outstanding credits to claim</div>}
                   </div>
                   <div style={{ display: "flex", gap: 16 }}>
