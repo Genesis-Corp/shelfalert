@@ -1,4 +1,4 @@
-import { productTextFromOcr, stockCodeFromOcr, ticketLocationFromOcr, encodeGapNotes, decodeGapNotes } from "./ocrUtils";
+import { productTextFromOcr, stockCodeFromOcr, ticketLocationFromOcr, encodeGapNotes, decodeGapNotes, nameSuggestion, isTicketGreen } from "./ocrUtils";
 
 test("suggests the product and size while skipping shelf price labels", () => {
   expect(productTextFromOcr("SPECIAL\n$4.50\nBirds Eye Chicken Nuggets\n400g\nSAVE $1.00"))
@@ -36,6 +36,26 @@ test("saves a stock code while keeping ordinary gap notes readable", () => {
 test("reads aisle and bay from the short code below the print date", () => {
   expect(ticketLocationFromOcr("03-33", 95)).toEqual({ aisle: "3", bay: "33" });
   expect(ticketLocationFromOcr("25/05/26", 99)).toBeNull();
-  expect(ticketLocationFromOcr("03-38", 50)).toBeNull();
+  expect(ticketLocationFromOcr("03-38", 30)).toBeNull();
+  expect(ticketLocationFromOcr("0 07-24", 90)).toEqual({ aisle: "7", bay: "24" });
   expect(ticketLocationFromOcr("00-33", 95)).toBeNull();
+});
+
+test("recognises both bright green and minty teal ticket colours but not other colours", () => {
+  expect(isTicketGreen(100, 200, 80)).toBe(true);
+  expect(isTicketGreen(80, 200, 150)).toBe(true);
+  expect(isTicketGreen(200, 60, 50)).toBe(false);
+  expect(isTicketGreen(230, 230, 230)).toBe(false);
+  expect(isTicketGreen(60, 90, 200)).toBe(false);
+});
+
+test("cleans ticket abbreviations and size misreads in the product suggestion", () => {
+  expect(productTextFromOcr("-S'MARE TUNA IN OIL 956")).toBe("S/MARE TUNA IN OIL 95G");
+  expect(productTextFromOcr("TMG SAUERKRAUT IKG")).toBe("TMG SAUERKRAUT 1KG");
+});
+
+test("only suggests a product name when the read is trustworthy", () => {
+  expect(nameSuggestion({ text: "TMG SAUERKRAUT 1KG", confidence: 60, agreement: .91 })).toBe("TMG SAUERKRAUT 1KG");
+  expect(nameSuggestion({ text: "FRIDRIEY ABUL OLVEN TUULM", confidence: 34, agreement: .79 })).toBe("");
+  expect(nameSuggestion({ text: "", confidence: 90, agreement: 1 })).toBe("");
 });

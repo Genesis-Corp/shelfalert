@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { getWeeklyData, getMonthlyWeeklyTotals, getMonthlyDayBreakdown, generateTheftCSV } from "./theftUtils";
-import { productTextFromOcr, stockCodeFromOcr, ticketLocationFromOcr, encodeGapNotes, decodeGapNotes, cropGreenShelfTicket } from "./ocrUtils";
+import { encodeGapNotes, decodeGapNotes, cropGreenShelfTicket, readTicketFields, nameSuggestion } from "./ocrUtils";
 
 // ─── SUPABASE CLIENT (official library — handles auth/refresh automatically) ──
 const supabase = createClient(
@@ -936,7 +936,7 @@ function SettingsView({ settings, depts, onSave, saving, onAddDept, onUpdateDept
 }
 
 // ─── FORMS ────────────────────────────────────────────────────────────────────
-function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose }) {
+function GapForm({ suppliers, gaps = [], token, numAisles, numBays, depts, onSave, onClose }) {
   const [f, setF] = useState({ description: "", stockCode: "", supplierId: "", aisle: "", bay: "", priority: "normal", notes: "", imageFile: null, imagePreview: null });
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrMessage, setOcrMessage] = useState("");
@@ -945,68 +945,77 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
   const [locationCrop, setLocationCrop] = useState("");
   const [saving, setSaving] = useState(false);
   const cameraRef = useRef(); const uploadRef = useRef(); const scanId = useRef(0);
+  const workerRef = useRef(null); const previewUrl = useRef(""); const lookedUp = useRef("");
   const s = (k, v) => setF(p => ({ ...p, [k]: v }));
-  useEffect(() => () => { scanId.current++; }, []);
+  // One reader is created on first use and kept for later photos; setting it up for every
+  // photo (and tearing it down) is what made the screen stutter while scanning.
+  const getWorker = () => {
+    if (!workerRef.current) {
+      workerRef.current = import("tesseract.js").then(({ createWorker }) => {
+        const assetRoot = `${process.env.PUBLIC_URL || ""}/ocr`;
+        return createWorker("eng", 1, { workerPath: `${assetRoot}/worker.min.js`, workerBlobURL: false, corePath: `${assetRoot}/core`, langPath: `${assetRoot}/lang` });
+      });
+      workerRef.current.catch(() => { workerRef.current = null; });
+    }
+    return workerRef.current;
+  };
+  useEffect(() => () => {
+    scanId.current++;
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+    workerRef.current?.then(w => w.terminate()).catch(() => {});
+  }, []);
+  // Same stock code as a gap logged before: reuse its product, supplier and location.
+  useEffect(() => {
+    const code = f.stockCode;
+    if (code.length < 5 || lookedUp.current === code) return;
+    const previous = gaps.filter(g => g.stockCode === code).sort((x, y) => new Date(y.loggedAt) - new Date(x.loggedAt))[0];
+    if (!previous) return;
+    lookedUp.current = code;
+    setF(prev => ({ ...prev,
+      description: prev.description.trim() ? prev.description : previous.description,
+      supplierId: prev.supplierId || (suppliers.some(sup => sup.id === previous.supplierId) ? previous.supplierId : ""),
+      aisle: prev.aisle || previous.aisle || "",
+      bay: prev.bay || previous.bay || "",
+    }));
+  }, [f.stockCode, gaps, suppliers]);
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
     e.target.value = "";
     const currentScan = ++scanId.current;
-    setF(prev => ({ ...prev, imageFile: file }));
-    setOcrText(""); setOcrCrop(""); setLocationCrop(""); setOcrMessage("Finding the product name on this device…"); setOcrLoading(true);
-    const reader = new FileReader();
-    reader.onload = ev => { if (scanId.current === currentScan) s("imagePreview", ev.target.result); };
-    reader.readAsDataURL(file);
-    let worker;
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+    previewUrl.current = URL.createObjectURL(file);
+    setF(prev => ({ ...prev, imageFile: file, imagePreview: previewUrl.current }));
+    setOcrText(""); setOcrCrop(""); setLocationCrop(""); setOcrMessage("Reading the shelf ticket on this device…"); setOcrLoading(true);
     try {
-      const { createWorker } = await import("tesseract.js");
-      const assetRoot = `${process.env.PUBLIC_URL || ""}/ocr`;
-      worker = await createWorker("eng", 1, {
-        workerPath: `${assetRoot}/worker.min.js`,
-        workerBlobURL: false,
-        corePath: `${assetRoot}/core`,
-        langPath: `${assetRoot}/lang`,
-      });
-      const ticket = await cropGreenShelfTicket(file).catch(() => null);
-      if (!ticket) {
-        if (scanId.current === currentScan) setOcrMessage("Could not isolate the green label. Take a closer photo of the product name or enter it manually.");
-        return;
-      }
-      if (scanId.current === currentScan) { setOcrCrop(ticket.heading.toDataURL("image/jpeg", .85)); setLocationCrop(ticket.location.toDataURL("image/png")); }
-      // Product names are printed in capitals; reading is single-line. Try the
-      // crop renderings in turn and keep the most confident read.
-      await worker.setParameters({ tessedit_pageseg_mode: "7", tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 &/.,'%-+()" });
-      let data = (await worker.recognize(ticket.heading)).data;
-      for (const crop of ticket.headingAlternates || []) {
-        if (data.confidence >= 80) break;
-        const next = (await worker.recognize(crop)).data;
-        if (next.confidence > data.confidence) data = next;
-      }
-      await worker.setParameters({ tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-" });
-      const stockResult = await worker.recognize(ticket.stock);
-      await worker.setParameters({ tessedit_char_whitelist: "0123456789-" });
-      const locationResult = await worker.recognize(ticket.location);
+      // Let the preview paint before the heavy image work starts.
+      await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+      const ticket = await cropGreenShelfTicket(file).catch(error => { console.error("Ticket detection failed:", error); return null; });
       if (scanId.current !== currentScan) return;
-      const text = data.text.trim();
-      setOcrText(text.slice(0, 600));
-      const suggestion = data.confidence >= 55 && text.length < 160 && /[a-z]{3,}.*[a-z]{3,}/i.test(text) ? productTextFromOcr(text) : "";
-      const stockCode = stockCodeFromOcr(stockResult.data.text, stockResult.data.confidence);
-      const location = ticketLocationFromOcr(locationResult.data.text, locationResult.data.confidence);
+      if (!ticket) { setOcrMessage("Could not find the green shelf ticket. Take a closer photo of the ticket or enter the details manually."); return; }
+      const worker = await getWorker();
+      const read = await readTicketFields(worker, ticket, { shouldStop: () => scanId.current !== currentScan });
+      if (scanId.current !== currentScan) return;
+      const suggestion = nameSuggestion(read.name);
+      const { location, stockCode } = read;
       const validAisle = location && +location.aisle <= numAisles;
       const validBay = location && +location.bay <= 100;
+      setOcrText(read.name.text.slice(0, 600));
+      setOcrCrop(read.name.canvas ? read.name.canvas.toDataURL("image/jpeg", .7) : "");
+      setLocationCrop(read.locationCanvas ? read.locationCanvas.toDataURL("image/png") : "");
       setF(prev => ({ ...prev,
         description: prev.description.trim() ? prev.description : suggestion,
         stockCode: prev.stockCode || stockCode,
         aisle: prev.aisle || (validAisle ? location.aisle : ""),
         bay: prev.bay || (validAisle && validBay ? location.bay : ""),
       }));
-      if (suggestion) {
-        setOcrMessage("Product text found. Check the description before saving.");
-      } else setOcrMessage("The label could not be read clearly. Move closer to the product name or enter it manually.");
+      const found = [suggestion && "product", stockCode && "stock code", location && "aisle and bay"].filter(Boolean);
+      setOcrMessage(found.length === 3 ? "Ticket read. Check the details before saving."
+        : found.length ? `Found the ${found.join(", ")}. Check them and fill in the rest.`
+        : "The ticket could not be read clearly. Move closer to it or enter the details manually.");
     } catch (error) {
       console.error("On-device text recognition failed:", error);
       if (scanId.current === currentScan) setOcrMessage("Text reading was unavailable. You can still enter the details manually.");
     } finally {
-      if (worker) try { await worker.terminate(); } catch (error) { console.error("OCR cleanup failed:", error); }
       if (scanId.current === currentScan) setOcrLoading(false);
     }
   };
@@ -1020,12 +1029,12 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
     <Modal title="Log New Gap" onClose={onClose} width={560}>
       <Field label="Product or shelf-label photo" hint="Printed text is read on your device. Check the suggestion; photos without readable text need a manual description.">
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <button type="button" onClick={() => cameraRef.current.click()} style={{ ...BS, display: "flex", alignItems: "center", gap: 6 }}><Icon d={IC.cam} size={14} /> Take photo</button>
-          <button type="button" onClick={() => uploadRef.current.click()} style={BS}>Upload image</button>
+          <button type="button" onClick={() => { getWorker().catch(() => {}); cameraRef.current.click(); }} style={{ ...BS, display: "flex", alignItems: "center", gap: 6 }}><Icon d={IC.cam} size={14} /> Take photo</button>
+          <button type="button" onClick={() => { getWorker().catch(() => {}); uploadRef.current.click(); }} style={BS}>Upload image</button>
           <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handlePhoto} />
           <input ref={uploadRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhoto} />
         </div>
-        {f.imagePreview && <img src={f.imagePreview} alt="Selected product or shelf label" style={{ marginTop: 10, width: "100%", maxHeight: 160, objectFit: "contain", background: "var(--ib)", borderRadius: 8 }} />}
+        {f.imagePreview && <img src={f.imagePreview} alt="Selected product or shelf label" style={{ display: "block", marginTop: 10, width: "100%", height: 160, objectFit: "contain", background: "var(--ib)", borderRadius: 8 }} />}
         {ocrCrop && <div style={{ marginTop: 10, fontSize: 12, color: "var(--t2)" }}>Product-name area (barcode excluded):<img src={ocrCrop} alt="Cropped product-name area sent to the on-device reader" style={{ display: "block", marginTop: 5, width: "100%", maxHeight: 100, objectFit: "contain", background: "var(--ib)" }} /></div>}
         {locationCrop && <div style={{ marginTop: 8, fontSize: 12, color: "var(--t2)" }}>Aisle-bay area below the printed date:<img src={locationCrop} alt="Cropped aisle and bay numbers from the shelf ticket" style={{ display: "block", marginTop: 5, width: 150, height: 52, objectFit: "contain", background: "var(--ib)" }} /></div>}
         {ocrMessage && <div role="status" style={{ fontSize: 12, color: ocrLoading ? "var(--t2)" : "var(--positive)", marginTop: 8 }}>{ocrMessage}</div>}
@@ -2148,7 +2157,7 @@ export default function ShelfAlert() {
         })}
       </nav>
 
-      {showGapForm  && <GapForm suppliers={suppliers} token={session.token} numAisles={settings.numAisles} numBays={settings.numBays} depts={depts} onSave={handleAddGap} onClose={() => setShowGapForm(false)} />}
+      {showGapForm  && <GapForm suppliers={suppliers} gaps={gaps} token={session.token} numAisles={settings.numAisles} numBays={settings.numBays} depts={depts} onSave={handleAddGap} onClose={() => setShowGapForm(false)} />}
       {showCodeForm && <CodeForm suppliers={suppliers} numAisles={settings.numAisles} numBays={settings.numBays} depts={depts} onSave={handleAddCode} onClose={() => setShowCodeForm(false)} />}
       {showSupForm  && <SupplierForm supplier={editSup} onSave={handleSaveSup} onClose={() => { setShowSupForm(false); setEditSup(null); }} />}
       {resolveTarget && <ResolveModal gapId={resolveTarget.gapId} status={resolveTarget.status} onConfirm={handleResolveConfirm} onClose={() => setResolveTarget(null)} />}
