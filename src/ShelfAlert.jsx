@@ -972,8 +972,16 @@ function GapForm({ suppliers, token, numAisles, numBays, depts, onSave, onClose 
         return;
       }
       if (scanId.current === currentScan) { setOcrCrop(ticket.heading.toDataURL("image/jpeg", .85)); setLocationCrop(ticket.location.toDataURL("image/png")); }
-      await worker.setParameters({ tessedit_pageseg_mode: "7" });
-      const { data } = await worker.recognize(ticket.heading);
+      // Product names are printed in capitals; reading is single-line. Try the
+      // crop renderings in turn and keep the most confident read.
+      await worker.setParameters({ tessedit_pageseg_mode: "7", tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 &/.,'%-+()" });
+      let data = (await worker.recognize(ticket.heading)).data;
+      for (const crop of ticket.headingAlternates || []) {
+        if (data.confidence >= 80) break;
+        const next = (await worker.recognize(crop)).data;
+        if (next.confidence > data.confidence) data = next;
+      }
+      await worker.setParameters({ tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-" });
       const stockResult = await worker.recognize(ticket.stock);
       await worker.setParameters({ tessedit_char_whitelist: "0123456789-" });
       const locationResult = await worker.recognize(ticket.location);
